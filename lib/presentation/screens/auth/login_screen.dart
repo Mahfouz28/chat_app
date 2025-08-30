@@ -4,22 +4,10 @@ import 'package:chat_app/data/repo/auth_repo.dart';
 import 'package:chat_app/presentation/screens/auth/sign_up_screen.dart';
 import 'package:chat_app/logic/cubit/auth_cubit.dart';
 import 'package:chat_app/logic/cubit/auth_state.dart';
+import 'package:chat_app/presentation/screens/home/home_screen.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-
-// مثال لشاشة رئيسية بعد تسجيل الدخول
-class HomeScreen extends StatelessWidget {
-  const HomeScreen({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text("Home")),
-      body: const Center(child: Text("Welcome 🎉")),
-    );
-  }
-}
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});

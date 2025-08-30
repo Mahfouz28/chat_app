@@ -39,6 +39,7 @@ dependencies:
   supabase_flutter: ^2.10.0
   bloc: ^9.0.0
   flutter_bloc:
+  flutter_contacts: ^1.1.9+2
 
 dev_dependencies:
   flutter_test:
