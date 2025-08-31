@@ -50,7 +50,7 @@ class _LoginScreenState extends State<LoginScreen> {
               // Navigate to HomeScreen
               Navigator.pushReplacement(
                 context,
-                MaterialPageRoute(builder: (_) => const HomeScreen()),
+                MaterialPageRoute(builder: (_) => const HomePage()),
               );
             } else if (state is AuthFailure) {
               ScaffoldMessenger.of(

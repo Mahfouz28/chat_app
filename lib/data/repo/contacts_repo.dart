@@ -3,61 +3,60 @@ import 'package:flutter_contacts/flutter_contacts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class ContactsRepo {
-  String get currntUserId => Supabase.instance.client.auth.currentUser!.id;
-  Future<bool> requestContcactsPremission() async {
+  String get currentUserId => Supabase.instance.client.auth.currentUser!.id;
+
+  /// طلب صلاحية الوصول للـ Contacts
+  Future<bool> requestContactsPermission() async {
     return await FlutterContacts.requestPermission();
   }
 
-  Future<List<Map<String, dynamic>>> getRigisterContacts() async {
+  /// Helper: توحيد صيغة أرقام التليفون
+  String normalizePhone(String phone) {
+    return phone
+        .replaceAll(RegExp(r'\s+'), '') // يشيل المسافات
+        .replaceAll('-', '') // يشيل الشرطة
+        .replaceAll('(', '') // يشيل قوس
+        .replaceAll(')', '')
+        .replaceFirst(RegExp(r'^\+20'), '0'); // يخلي +20 تبقى 0
+  }
+
+  /// جلب الكونتاكتس اللي متسجلين في الـ DB
+  Future<List<UserModel>> getRegisteredContacts() async {
     try {
-      // get device contacts with phone num
+      // تأكد أن في صلاحية
+      final hasPermission = await requestContactsPermission();
+      if (!hasPermission) {
+        throw Exception("Contacts permission denied");
+      }
+
+      // جلب الكونتاكتس من الجهاز
       final contacts = await FlutterContacts.getContacts(
         withProperties: true,
         withPhoto: true,
       );
 
-      // extract phone nums and normalize them
-      final phoneNumpers = contacts
-          .where((contacts) => contacts.phones.isNotEmpty)
-          .map((contact) {
-            return {
-              'name': contact.displayName,
-              'phone': contact.phones.first.number,
-              'photo': contact.photo,
-            };
-          })
-          .toList();
-      // Fetch all users from "users" table
-      final userSnapShot = await Supabase.instance.client
-          .from('users')
-          .select();
+      final phoneNumbers = contacts
+          .where((c) => c.phones.isNotEmpty)
+          .map((c) => normalizePhone(c.phones.first.number))
+          .toSet(); // set علشان السرعة وتفادي التكرار
 
-      final registeredContacts = (userSnapShot as List)
-          .map((doc) => UserModel.fromSupabase(doc))
-          .toList();
+      // جلب المستخدمين من Supabase
+      final response = await Supabase.instance.client.from('users').select();
 
-      final matchContacts = phoneNumpers
-          .where((contact) {
-            final phoneNumper = contact['phone_number'];
-            return registeredContacts.any(
-              (user) =>
-                  user.phoneNumber == phoneNumper && user.id != currntUserId,
-            );
-          })
-          .map((contact) {
-            final registardUser = registeredContacts.firstWhere(
-              (user) => user.phoneNumber == contact['phone_number'],
-            );
-            return {
-              'id': registardUser.id,
-              'name': contact['full_name'],
-              'phone': contact['phone_number'],
-            };
-          })
-          .toList();
-      return matchContacts;
-    } catch (e) {
-      print('Error giting regester users');
+      final users = (response as List<dynamic>).map(
+        (doc) => UserModel.fromSupabase(doc as Map<String, dynamic>),
+      );
+
+      // فلترة المستخدمين اللي أرقامهم موجودة في الكونتاكتس
+      final matchedUsers = users.where((user) {
+        return phoneNumbers.contains(normalizePhone(user.phoneNumber)) &&
+            user.id != currentUserId;
+      }).toList();
+
+      return matchedUsers;
+    } catch (e, st) {
+      print('Error getting registered users: $e');
+      print(st);
       return [];
     }
   }
