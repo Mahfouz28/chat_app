@@ -1,5 +1,6 @@
 import 'package:chat_app/data/model/user_model.dart';
 import 'package:chat_app/data/repo/contacts_repo.dart';
+import 'package:chat_app/presentation/screens/chat/chat_messge_screen.dart';
 import 'package:chat_app/services_locator.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -23,6 +24,7 @@ class _HomeScreenState extends State<HomePage> {
   void showContactsList(BuildContext context) async {
     final hasPermission = await contactsRepo.requestContactsPermission();
     if (!hasPermission) {
+      if (!mounted) return;
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text("Contacts permission denied")));
@@ -31,37 +33,55 @@ class _HomeScreenState extends State<HomePage> {
 
     showModalBottomSheet(
       context: context,
+      isScrollControlled: true, // ⬅ يسمح بالتمدد
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20.r)),
+      ),
       builder: (context) {
         return Container(
           padding: EdgeInsets.all(16.0.r),
+          height:
+              MediaQuery.of(context).size.height * 0.75, // ⬅ ياخد 75% من الشاشة
           child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
                 'Contacts',
                 style: TextStyle(fontSize: 20.sp, fontWeight: FontWeight.bold),
               ),
-              FutureBuilder<List<UserModel>>(
-                future: contactsRepo.getRegisteredContacts(),
-                builder: (context, snapshot) {
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return Center(child: CircularProgressIndicator());
-                  }
-                  if (snapshot.hasError) {
-                    return Center(child: Text('Error: ${snapshot.error}'));
-                  }
-                  if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                    return Center(child: Text('No Contacts'));
-                  }
+              SizedBox(height: 10.h),
+              Expanded(
+                child: FutureBuilder<List<UserModel>>(
+                  future: contactsRepo.getRegisteredContacts(),
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return Center(child: CircularProgressIndicator());
+                    }
+                    if (snapshot.hasError) {
+                      return Center(child: Text('Error: ${snapshot.error}'));
+                    }
+                    if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                      return Center(child: Text('No Contacts'));
+                    }
 
-                  final contacts = snapshot.data!;
+                    final contacts = snapshot.data!;
 
-                  return Expanded(
-                    // ⬅ مهم جداً علشان مايحصلش overflow
-                    child: ListView.builder(
+                    return ListView.builder(
                       itemCount: contacts.length,
                       itemBuilder: (context, index) {
                         final contact = contacts[index];
                         return ListTile(
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => ChatMessgeScreen(
+                                  receviedId: contact.id,
+                                  receviedName: contact.fullName,
+                                ),
+                              ),
+                            );
+                          },
                           leading: CircleAvatar(
                             backgroundColor: Theme.of(
                               context,
@@ -76,9 +96,9 @@ class _HomeScreenState extends State<HomePage> {
                           subtitle: Text(contact.phoneNumber),
                         );
                       },
-                    ),
-                  );
-                },
+                    );
+                  },
+                ),
               ),
             ],
           ),
@@ -90,7 +110,8 @@ class _HomeScreenState extends State<HomePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      floatingActionButton: ElevatedButton(
+      floatingActionButton: FloatingActionButton(
+        backgroundColor: Theme.of(context).primaryColor,
         onPressed: () {
           showContactsList(context);
         },

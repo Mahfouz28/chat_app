@@ -2,29 +2,31 @@ import 'package:chat_app/data/model/chat_mode_model.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class ChatRepo {
-  final chatRoom = Supabase.instance.client.from('chat_room'); //  الجدول الصح
-  final usersTable = Supabase.instance.client.from('users'); //  جدول المستخدمين
+  final chatRoomTable = Supabase.instance.client.from(
+    'chat_rooms',
+  ); // جدول الغرف
+  final usersTable = Supabase.instance.client.from('users'); // جدول المستخدمين
 
   Future<ChatModeModel> getOrCreateChatRoom(
     String currentUserId,
     String otherUserId,
   ) async {
-    final user = [currentUserId, otherUserId];
-    user.sort(); // عشان يكون نفس الـ id دايمًا بغض النظر عن الترتيب
-    final roomId = user.join('_');
+    final userIds = [currentUserId, otherUserId];
+    userIds.sort(); // نفس الـ id بغض النظر عن الترتيب
+    final roomId = userIds.join('_');
 
     // check if room already exists
-    final roomDoc = await chatRoom.select().eq('id', roomId).maybeSingle();
+    final roomDoc = await chatRoomTable.select().eq('id', roomId).maybeSingle();
+
     if (roomDoc != null) {
       return ChatModeModel.fromSupabase(roomDoc);
     }
 
-    //  get user data from users table
+    // get user data
     final currentUserData = await usersTable
         .select()
         .eq('id', currentUserId)
         .maybeSingle();
-
     final otherUserData = await usersTable
         .select()
         .eq('id', otherUserId)
@@ -39,16 +41,15 @@ class ChatRepo {
       otherUserId: (otherUserData['full_name'] ?? '').toString(),
     };
 
-    //  create new chat room
     final newRoom = ChatModeModel(
       id: roomId,
-      participants: user,
+      participants: userIds,
       participantsName: participantsName,
       lastRead: {currentUserId: DateTime.now(), otherUserId: DateTime.now()},
     );
 
-    // save it in Supabase
-    await chatRoom.insert(newRoom.toMap());
+    // save in Supabase
+    await chatRoomTable.insert(newRoom.toMap());
 
     return newRoom;
   }

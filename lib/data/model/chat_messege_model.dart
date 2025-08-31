@@ -6,7 +6,7 @@ class ChatMessageModel {
   final String id;
   final String chatRoomId;
   final String senderId;
-  final String recevierId;
+  final String receiverId; // fixed typo
   final String content;
   final MessageType type;
   final MessageStatus status;
@@ -18,7 +18,7 @@ class ChatMessageModel {
     required this.id,
     required this.chatRoomId,
     required this.senderId,
-    required this.recevierId,
+    required this.receiverId,
     required this.content,
     this.type = MessageType.text,
     this.status = MessageStatus.sent,
@@ -33,18 +33,24 @@ class ChatMessageModel {
       id: data['id'] ?? '',
       chatRoomId: data['chat_room_id'] ?? '',
       senderId: data['sender_id'] ?? '',
-      recevierId: data['recevier_id'] ?? '',
+      receiverId: data['receiver_id'] ?? '', // fixed key
       content: data['content'] ?? '',
       type: MessageType.values.firstWhere(
-        (e) => e.name == (data['type'] ?? 'text'),
+        (e) =>
+            e.name.toLowerCase() ==
+            (data['type'] ?? 'text').toString().toLowerCase(),
         orElse: () => MessageType.text,
       ),
       status: MessageStatus.values.firstWhere(
-        (e) => e.name == (data['status'] ?? 'sent'),
+        (e) =>
+            e.name.toLowerCase() ==
+            (data['status'] ?? 'sent').toString().toLowerCase(),
         orElse: () => MessageStatus.sent,
       ),
       createdAt: data['created_at'] != null
-          ? DateTime.parse(data['created_at'])
+          ? (data['created_at'] is String
+                ? DateTime.tryParse(data['created_at']) ?? DateTime.now()
+                : (data['created_at'] as DateTime))
           : DateTime.now(),
       isDeleted: data['is_deleted'] ?? false,
       seenBy: data['seen_by'] != null ? List<String>.from(data['seen_by']) : [],
@@ -57,7 +63,7 @@ class ChatMessageModel {
       'id': id,
       'chat_room_id': chatRoomId,
       'sender_id': senderId,
-      'recevier_id': recevierId,
+      'receiver_id': receiverId, // fixed key
       'content': content,
       'type': type.name,
       'status': status.name,
@@ -72,7 +78,7 @@ class ChatMessageModel {
     String? id,
     String? chatRoomId,
     String? senderId,
-    String? recevierId,
+    String? receiverId,
     String? content,
     MessageType? type,
     MessageStatus? status,
@@ -84,7 +90,7 @@ class ChatMessageModel {
       id: id ?? this.id,
       chatRoomId: chatRoomId ?? this.chatRoomId,
       senderId: senderId ?? this.senderId,
-      recevierId: recevierId ?? this.recevierId,
+      receiverId: receiverId ?? this.receiverId,
       content: content ?? this.content,
       type: type ?? this.type,
       status: status ?? this.status,
