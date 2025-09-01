@@ -1,6 +1,6 @@
 import 'package:bloc/bloc.dart';
 import 'package:chat_app/data/repo/auth_repo.dart';
-import 'package:chat_app/logic/cubit/auth_state.dart';
+import 'package:chat_app/logic/cubit/auth/auth_state.dart';
 
 class AuthCubit extends Cubit<AuthState> {
   final AuthRepository authRepository;

@@ -1,8 +1,11 @@
 import 'package:chat_app/config/theme/app_theme.dart';
+import 'package:chat_app/logic/cubit/chat/chat_cubit.dart';
 import 'package:chat_app/presentation/screens/auth/login_screen.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:chat_app/data/repo/chat_repo.dart';
 import 'package:chat_app/services_locator.dart';
 import 'package:chat_app/core/subaBase/suba_base_keys.dart';
 
@@ -16,7 +19,12 @@ void main() async {
 
   init(); // تسجيل الـ Repository
 
-  runApp(const MyApp());
+  runApp(
+    MultiBlocProvider(
+      providers: [BlocProvider(create: (context) => ChatCubit(sl<ChatRepo>()))],
+      child: const MyApp(),
+    ),
+  );
 }
 
 class MyApp extends StatelessWidget {

@@ -1,7 +1,12 @@
-import 'package:chat_app/config/theme/app_theme.dart';
-import 'package:chat_app/data/model/chat_messege_model.dart';
+import 'package:chat_app/logic/cubit/chat/chat_status.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:chat_app/logic/cubit/chat/chat_cubit.dart';
+import 'package:chat_app/data/model/chat_messege_model.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:chat_app/config/theme/app_theme.dart';
+import 'package:animated_text_kit/animated_text_kit.dart';
 
 class ChatMessgeScreen extends StatefulWidget {
   const ChatMessgeScreen({super.key, this.receviedId, this.receviedName});
@@ -15,13 +20,45 @@ class ChatMessgeScreen extends StatefulWidget {
 
 class _ChatMessgeScreenState extends State<ChatMessgeScreen> {
   final TextEditingController messageController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    context.read<ChatCubit>().loadChat(
+      Supabase.instance.client.auth.currentUser!.id,
+      widget.receviedId!,
+    );
+  }
+
+  Future<void> handelSendMessege() async {
+    final chatCubit = context.read<ChatCubit>();
+    if (chatCubit.state is! ChatLoaded) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text("Chat not ready yet!")));
+      return;
+    }
+
+    final chatRoomID = (chatCubit.state as ChatLoaded).chatRoom.id;
+    final messegeText = messageController.text.trim();
+    if (messegeText.isEmpty) return;
+
+    chatCubit.sendMessage(
+      chatRoomId: chatRoomID,
+      senderId: Supabase.instance.client.auth.currentUser!.id,
+      receiverId: widget.receviedId!,
+      content: messegeText,
+    );
+
+    messageController.clear();
+  }
+
   @override
   Widget build(BuildContext context) {
     final name = widget.receviedName ?? "";
     return Scaffold(
       appBar: AppBar(
         title: Row(
-          mainAxisAlignment: MainAxisAlignment.start,
           children: [
             CircleAvatar(
               backgroundColor: Theme.of(context).primaryColor.withOpacity(.2),
@@ -54,22 +91,52 @@ class _ChatMessgeScreenState extends State<ChatMessgeScreen> {
       body: Column(
         children: [
           Expanded(
-            child: ListView.builder(
-              itemCount: 4,
-              itemBuilder: (context, index) => MessegeBubbel(
-                chatMessage: ChatMessageModel(
-                  seenBy: [],
-                  id: '234',
-                  chatRoomId: '289374',
-                  senderId: '823476',
-                  receiverId: '2734687',
-                  content: 'hello this is a message ',
-                  createdAt: DateTime.now(),
-                  status: MessageStatus.read,
-                ),
-                isMe: false,
-                showTime: true,
-              ),
+            child: BlocBuilder<ChatCubit, ChatState>(
+              builder: (context, state) {
+                if (state is ChatLoading) {
+                  return const Center(child: CircularProgressIndicator());
+                } else if (state is ChatError) {
+                  return Center(child: Text("Error: ${state.message}"));
+                } else if (state is ChatLoaded) {
+                  final messages = state.messages;
+                  if (messages.isEmpty) {
+                    return Center(
+                      child: AnimatedTextKit(
+                        animatedTexts: [
+                          TypewriterAnimatedText(
+                            'Say Hi 👋',
+                            cursor: '',
+                            textStyle: const TextStyle(
+                              fontSize: 20.0,
+                              fontWeight: FontWeight.bold,
+                            ),
+                            speed: const Duration(milliseconds: 200),
+                          ),
+                        ],
+                        totalRepeatCount: 5,
+                        pause: const Duration(milliseconds: 900),
+                      ),
+                    );
+                  }
+
+                  return ListView.builder(
+                    reverse: true,
+                    itemCount: messages.length,
+                    itemBuilder: (context, index) {
+                      final msg = messages[index];
+                      final isMe =
+                          msg.senderId ==
+                          Supabase.instance.client.auth.currentUser!.id;
+                      return MessegeBubbel(
+                        chatMessage: msg,
+                        isMe: isMe,
+                        showTime: true,
+                      );
+                    },
+                  );
+                }
+                return const SizedBox();
+              },
             ),
           ),
           Padding(
@@ -115,7 +182,7 @@ class _ChatMessgeScreenState extends State<ChatMessgeScreen> {
                     color: AppTheme.primaryColor,
                     size: 35,
                   ),
-                  onPressed: () {},
+                  onPressed: handelSendMessege,
                 ),
               ],
             ),
@@ -159,13 +226,16 @@ class MessegeBubbel extends StatelessWidget {
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text(
-                  chatMessage.content,
-                  style: TextStyle(
-                    color: isMe ? Colors.white : Colors.black87,
-                    fontSize: 14.sp,
+                Flexible(
+                  child: Text(
+                    chatMessage.content,
+                    style: TextStyle(
+                      color: isMe ? Colors.white : Colors.black87,
+                      fontSize: 14.sp,
+                    ),
                   ),
                 ),
+                8.horizontalSpace,
                 Icon(
                   Icons.done_all,
                   size: 16.sp,
@@ -190,6 +260,7 @@ class MessegeBubbel extends StatelessWidget {
   }
 
   String _formatTime(DateTime time) {
-    return "${time.hour}:${time.minute.toString().padLeft(2, '0')}";
+    final local = time.toLocal();
+    return "${local.hour}:${local.minute.toString().padLeft(2, '0')}";
   }
 }
