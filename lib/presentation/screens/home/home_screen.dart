@@ -1,3 +1,5 @@
+// ignore_for_file: dead_code
+
 import 'package:chat_app/core/common/snackBar.dart';
 import 'package:chat_app/data/model/user_model.dart';
 import 'package:chat_app/data/repo/auth_repo.dart';
@@ -35,22 +37,6 @@ class _HomeScreenState extends State<HomePage> {
   Future<void> _fetchChatRooms() async {
     try {
       _chatRooms = await homeRepo.fetchUserChatRooms(_currentUserId);
-
-      // Debug print لكل الغرف
-      print("==== User Chat Rooms ====");
-      print("=======Current User ID: $_currentUserId==============");
-      for (var room in _chatRooms) {
-        print("=========Room ID: ${room['id']}============");
-        print("===========Name: ${room['name']}============");
-        print("=======Last Message: ${room['last_message']}=======");
-        print(
-          "=======Last Message Time: ${room['last_message_time']}=========",
-        );
-        print(
-          "=================Participants Name: ${room['participants_name']}===========",
-        );
-        print("----------------------------");
-      }
 
       setState(() {
         _chatRooms;
@@ -228,14 +214,44 @@ class _HomeScreenState extends State<HomePage> {
                 itemBuilder: (context, index) {
                   final room = _chatRooms[index];
 
+                  // participants_name موجودة كـ Map<String, String>
+                  final participantsMap = Map<String, String>.from(
+                    room['participants_name'] ?? {},
+                  );
+
+                  final otherParticipantName = participantsMap.entries
+                      .firstWhere(
+                        (entry) => entry.key != _currentUserId,
+                        orElse: () => MapEntry('', 'No Name'),
+                      )
+                      .value;
+
                   return ListTile(
-                    title: Text(room['name'] ?? 'No Name'), // لو الاسم فاضي
+                    title: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(otherParticipantName),
+                        Text(
+                          room['last_message_time'] != null
+                              ? TimeOfDay.fromDateTime(
+                                  DateTime.parse(
+                                    room['last_message_time'],
+                                  ).toLocal(),
+                                ).format(context)
+                              : '',
+                          style: TextStyle(fontSize: 12, color: Colors.grey),
+                        ),
+                      ],
+                    ),
                     subtitle: Text(
-                      room['last_message'] ?? 'No messages yet',
-                    ), // لو الرسالة فاضية
-                    onTap: () {
-                      // افتح شاشة الدردشة هنا
-                    },
+                      '${room['last_message']}',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.grey,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    onTap: () {},
                   );
                 },
               ),

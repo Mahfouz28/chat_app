@@ -6,7 +6,7 @@ class ChatRoomModel {
   final Map<String, DateTime> lastRead;
   final Map<String, String> participantsName;
   final bool isTyping;
-  final String? isTypingUId; // خليتها text زي DB
+  final String? isTypingUId;
   final bool isCallActive;
 
   ChatRoomModel({

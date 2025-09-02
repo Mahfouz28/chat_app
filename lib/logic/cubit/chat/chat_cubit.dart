@@ -17,7 +17,6 @@ class ChatCubit extends Cubit<ChatState> {
       final chatRoom = await chatRepo.getOrCreateRoom(
         currentUserId,
         otherUserId,
-        {},
       );
 
       final initialMessages = await chatRepo.getMessages(chatRoom.id);

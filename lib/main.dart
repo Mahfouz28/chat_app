@@ -1,6 +1,6 @@
 import 'package:chat_app/config/theme/app_theme.dart';
 import 'package:chat_app/logic/cubit/chat/chat_cubit.dart';
-import 'package:chat_app/presentation/screens/auth/login_screen.dart';
+import 'package:chat_app/presentation/screens/splash/splash_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -44,7 +44,7 @@ class MyApp extends StatelessWidget {
           // You can use the library anywhere in the app even in theme
           theme: AppTheme.lightTheme,
 
-          home: LoginScreen(),
+          home: SplashScreen(),
         );
       },
     );

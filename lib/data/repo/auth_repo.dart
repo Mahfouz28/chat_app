@@ -1,5 +1,8 @@
 // lib/data/repo/auth_repo.dart
 import 'package:chat_app/data/model/user_model.dart';
+import 'package:chat_app/presentation/screens/auth/login_screen.dart';
+import 'package:chat_app/presentation/screens/home/home_screen.dart';
+import 'package:flutter/material.dart';
 
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -7,6 +10,23 @@ class AuthRepository {
   final supabase = Supabase.instance.client;
 
   AuthRepository();
+  Future<void> checkAuth(BuildContext context) async {
+    final session = Supabase.instance.client.auth.currentSession;
+
+    if (session != null) {
+      // User is signed in → go to main/home screen
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => HomePage()),
+      );
+    } else {
+      // User is not signed in → go to login screen
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => LoginScreen()),
+      );
+    }
+  }
 
   // تسجيل مستخدم جديد
   Future<UserModel> signUp({
