@@ -1,5 +1,6 @@
 import 'package:chat_app/core/common/custom_text_botton.dart';
 import 'package:chat_app/core/common/custom_text_field.dart';
+import 'package:chat_app/core/common/snackbar.dart';
 import 'package:chat_app/presentation/screens/auth/login_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:chat_app/data/repo/auth_repo.dart';
@@ -32,17 +33,14 @@ class _SignUpScreenState extends State<SignUpScreen> {
           phone: phoneNumberController.text.trim(),
           userName: usernameController.text.trim(),
         );
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Account created successfully ")),
-        );
+        AppSnackBar.show(context, message: 'Account created successfully!');
+
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (_) => LoginScreen()),
         );
       } catch (e) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(e.toString())));
+        AppSnackBar.show(context, message: e.toString(), isError: true);
       }
     } else {
       debugPrint('Form validation Failed');

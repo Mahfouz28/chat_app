@@ -6,7 +6,7 @@ class ChatMessageModel {
   final String id;
   final String chatRoomId;
   final String senderId;
-  final String receiverId; // fixed typo
+  final String receiverId;
   final String content;
   final MessageType type;
   final MessageStatus status;
@@ -27,13 +27,13 @@ class ChatMessageModel {
     this.seenBy = const [],
   });
 
-  /// convert DB row → Dart object
+  /// DB row → Dart object
   factory ChatMessageModel.fromSupabase(Map<String, dynamic> data) {
     return ChatMessageModel(
       id: data['id'] ?? '',
       chatRoomId: data['chat_room_id'] ?? '',
       senderId: data['sender_id'] ?? '',
-      receiverId: data['receiver_id'] ?? '', // fixed key
+      receiverId: data['receiver_id'] ?? '',
       content: data['content'] ?? '',
       type: MessageType.values.firstWhere(
         (e) =>
@@ -48,22 +48,21 @@ class ChatMessageModel {
         orElse: () => MessageStatus.sent,
       ),
       createdAt: data['created_at'] != null
-          ? (data['created_at'] is String
-                ? DateTime.tryParse(data['created_at']) ?? DateTime.now()
-                : (data['created_at'] as DateTime))
-          : DateTime.now(),
+          ? DateTime.tryParse(data['created_at'].toString()) ??
+                DateTime.now().toUtc()
+          : DateTime.now().toUtc(),
       isDeleted: data['is_deleted'] ?? false,
       seenBy: data['seen_by'] != null ? List<String>.from(data['seen_by']) : [],
     );
   }
 
-  /// convert Dart object → DB row
+  /// Dart object → DB row
   Map<String, dynamic> toMap() {
     return {
       'id': id,
       'chat_room_id': chatRoomId,
       'sender_id': senderId,
-      'receiver_id': receiverId, // fixed key
+      'receiver_id': receiverId,
       'content': content,
       'type': type.name,
       'status': status.name,
@@ -73,7 +72,7 @@ class ChatMessageModel {
     };
   }
 
-  /// copyWith → create a new object with some updated fields
+  /// copyWith → create new object with updated fields
   ChatMessageModel copyWith({
     String? id,
     String? chatRoomId,

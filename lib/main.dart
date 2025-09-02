@@ -17,7 +17,7 @@ void main() async {
     anonKey: SubaBaseKeys.apiKey,
   );
 
-  init(); // تسجيل الـ Repository
+  init();
 
   runApp(
     MultiBlocProvider(

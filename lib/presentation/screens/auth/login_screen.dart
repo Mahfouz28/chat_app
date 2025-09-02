@@ -1,5 +1,6 @@
 import 'package:chat_app/core/common/custom_text_botton.dart';
 import 'package:chat_app/core/common/custom_text_field.dart';
+import 'package:chat_app/core/common/snackBar.dart';
 import 'package:chat_app/data/repo/auth_repo.dart';
 import 'package:chat_app/presentation/screens/auth/sign_up_screen.dart';
 import 'package:chat_app/logic/cubit/auth/auth_cubit.dart';
@@ -42,20 +43,15 @@ class _LoginScreenState extends State<LoginScreen> {
         body: BlocConsumer<AuthCubit, AuthState>(
           listener: (context, state) {
             if (state is AuthLoading) {
-              // Show loading snackbar
-              ScaffoldMessenger.of(
-                context,
-              ).showSnackBar(const SnackBar(content: Text("Signing in...")));
             } else if (state is AuthSuccess) {
               // Navigate to HomeScreen
               Navigator.pushReplacement(
                 context,
                 MaterialPageRoute(builder: (_) => const HomePage()),
               );
+              AppSnackBar.show(context, message: "Login Successful!");
             } else if (state is AuthFailure) {
-              ScaffoldMessenger.of(
-                context,
-              ).showSnackBar(SnackBar(content: Text(state.error)));
+              AppSnackBar.show(context, message: state.error, isError: true);
             }
           },
           builder: (context, state) {

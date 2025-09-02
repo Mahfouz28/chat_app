@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 class AppTheme {
-  static const primaryColor = Color(0xff692960);
+  static const primaryColor = Colors.blue;
 
   static ThemeData lightTheme = ThemeData(
     useMaterial3: true,

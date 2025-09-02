@@ -1,5 +1,6 @@
 // lib/data/repo/auth_repo.dart
 import 'package:chat_app/data/model/user_model.dart';
+
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class AuthRepository {
@@ -32,7 +33,7 @@ class AuthRepository {
         id: user.id,
         fullName: fullName,
         email: email,
-        usrename: userName,
+        username: userName,
         phoneNumber: phone,
         fcmToken: '',
       );

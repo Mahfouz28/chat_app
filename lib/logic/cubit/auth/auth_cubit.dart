@@ -44,16 +44,16 @@ class AuthCubit extends Cubit<AuthState> {
     }
   }
 
-  // تسجيل الخروج
-  Future<void> signOut() async {
-    emit(AuthLoading());
-    try {
-      await authRepository.signOut();
-      emit(AuthInitial()); // رجع للحالة الأولى
-    } catch (e) {
-      emit(AuthFailure(e.toString()));
-    }
-  }
+  // // تسجيل الخروج
+  // Future<void> signOut() async {
+  //   emit(AuthLoading());
+  //   try {
+  //     await authRepository.signOut();
+  //     emit(AuthInitial()); // رجع للحالة الأولى
+  //   } catch (e) {
+  //     emit(AuthFailure(e.toString()));
+  //   }
+  // }
 
   // جلب بيانات المستخدم
   Future<void> getUserData(String userId) async {

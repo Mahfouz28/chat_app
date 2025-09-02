@@ -1,4 +1,4 @@
-class ChatModeModel {
+class ChatRoomModel {
   final String id;
   final List<String> participants;
   final String? lastMessage;
@@ -6,10 +6,10 @@ class ChatModeModel {
   final Map<String, DateTime> lastRead;
   final Map<String, String> participantsName;
   final bool isTyping;
-  final String? isTypingUId;
+  final String? isTypingUId; // خليتها text زي DB
   final bool isCallActive;
 
-  ChatModeModel({
+  ChatRoomModel({
     required this.id,
     required this.participants,
     this.lastMessage,
@@ -23,8 +23,8 @@ class ChatModeModel {
        participantsName = participantsName ?? {};
 
   /// fromSupabase
-  factory ChatModeModel.fromSupabase(Map<String, dynamic> data) {
-    return ChatModeModel(
+  factory ChatRoomModel.fromSupabase(Map<String, dynamic> data) {
+    return ChatRoomModel(
       id: data['id'] ?? '',
       participants: data['participants'] != null
           ? List<String>.from(data['participants'])
@@ -35,10 +35,7 @@ class ChatModeModel {
           : null,
       lastRead: data['last_read'] != null
           ? (data['last_read'] as Map<String, dynamic>).map(
-              (k, v) => MapEntry(
-                k,
-                v is String ? DateTime.parse(v) : DateTime.parse(v.toString()),
-              ),
+              (k, v) => MapEntry(k, DateTime.parse(v.toString())),
             )
           : {},
       participantsName: data['participants_name'] != null

@@ -1,25 +1,24 @@
-import 'package:chat_app/logic/cubit/chat/chat_status.dart';
-import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:chat_app/logic/cubit/chat/chat_cubit.dart';
-import 'package:chat_app/data/model/chat_messege_model.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:chat_app/config/theme/app_theme.dart';
 import 'package:animated_text_kit/animated_text_kit.dart';
+import 'package:chat_app/config/theme/app_theme.dart';
+import 'package:chat_app/data/model/chat_messege_model.dart';
+import 'package:chat_app/logic/cubit/chat/chat_status.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:chat_app/logic/cubit/chat/chat_cubit.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class ChatMessgeScreen extends StatefulWidget {
   const ChatMessgeScreen({super.key, this.receviedId, this.receviedName});
 
-  final String? receviedId;
-  final String? receviedName;
-
   @override
   State<ChatMessgeScreen> createState() => _ChatMessgeScreenState();
+  final String? receviedId;
+  final String? receviedName;
 }
 
 class _ChatMessgeScreenState extends State<ChatMessgeScreen> {
-  final TextEditingController messageController = TextEditingController();
+  final TextEditingController _messageController = TextEditingController();
 
   @override
   void initState() {
@@ -28,29 +27,6 @@ class _ChatMessgeScreenState extends State<ChatMessgeScreen> {
       Supabase.instance.client.auth.currentUser!.id,
       widget.receviedId!,
     );
-  }
-
-  Future<void> handelSendMessege() async {
-    final chatCubit = context.read<ChatCubit>();
-    if (chatCubit.state is! ChatLoaded) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text("Chat not ready yet!")));
-      return;
-    }
-
-    final chatRoomID = (chatCubit.state as ChatLoaded).chatRoom.id;
-    final messegeText = messageController.text.trim();
-    if (messegeText.isEmpty) return;
-
-    chatCubit.sendMessage(
-      chatRoomId: chatRoomID,
-      senderId: Supabase.instance.client.auth.currentUser!.id,
-      receiverId: widget.receviedId!,
-      content: messegeText,
-    );
-
-    messageController.clear();
   }
 
   @override
@@ -95,10 +71,9 @@ class _ChatMessgeScreenState extends State<ChatMessgeScreen> {
               builder: (context, state) {
                 if (state is ChatLoading) {
                   return const Center(child: CircularProgressIndicator());
-                } else if (state is ChatError) {
-                  return Center(child: Text("Error: ${state.message}"));
                 } else if (state is ChatLoaded) {
                   final messages = state.messages;
+
                   if (messages.isEmpty) {
                     return Center(
                       child: AnimatedTextKit(
@@ -113,20 +88,22 @@ class _ChatMessgeScreenState extends State<ChatMessgeScreen> {
                             speed: const Duration(milliseconds: 200),
                           ),
                         ],
-                        totalRepeatCount: 5,
-                        pause: const Duration(milliseconds: 900),
+                        repeatForever: true,
                       ),
                     );
                   }
-
                   return ListView.builder(
                     reverse: true,
                     itemCount: messages.length,
                     itemBuilder: (context, index) {
-                      final msg = messages[index];
+                      // ⬅️ لازم نقلب الليست عشان تظهر أحدث رسالة تحت
+                      final reversedMessages = messages.reversed.toList();
+                      final msg = reversedMessages[index];
+
                       final isMe =
                           msg.senderId ==
                           Supabase.instance.client.auth.currentUser!.id;
+
                       return MessegeBubbel(
                         chatMessage: msg,
                         isMe: isMe,
@@ -134,57 +111,57 @@ class _ChatMessgeScreenState extends State<ChatMessgeScreen> {
                       );
                     },
                   );
+                } else if (state is ChatError) {
+                  return Center(child: Text("Error: ${state.message}"));
                 }
-                return const SizedBox();
+                return const SizedBox.shrink();
               },
             ),
           ),
-          Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: Row(
-              children: [
-                IconButton(
-                  onPressed: () {},
-                  icon: Icon(
-                    Icons.emoji_emotions_outlined,
-                    color: AppTheme.primaryColor,
-                    size: 40,
-                  ),
-                ),
-                Expanded(
-                  child: TextField(
-                    controller: messageController,
-                    keyboardType: TextInputType.multiline,
-                    textCapitalization: TextCapitalization.sentences,
-                    decoration: InputDecoration(
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(20.r),
-                        borderSide: BorderSide.none,
-                      ),
-                      enabledBorder: InputBorder.none,
-                      hintText: "Type a message",
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(20.r),
-                        borderSide: BorderSide.none,
-                      ),
-                      filled: true,
-                      contentPadding: EdgeInsets.symmetric(
-                        horizontal: 16.w,
-                        vertical: 8.h,
-                      ),
-                      fillColor: Theme.of(context).cardColor,
+
+          // ===== Box تبع كتابة الرسالة =====
+          SafeArea(
+            child: Padding(
+              padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
+              child: Row(
+                children: [
+                  IconButton(
+                    onPressed: () {},
+                    icon: Icon(
+                      Icons.emoji_emotions_outlined,
+                      size: 24.sp,
+                      color: AppTheme.primaryColor,
                     ),
                   ),
-                ),
-                IconButton(
-                  icon: const Icon(
-                    Icons.send,
-                    color: AppTheme.primaryColor,
-                    size: 35,
+                  Expanded(
+                    child: TextField(
+                      minLines: 1,
+                      maxLines: null,
+                      controller: _messageController,
+                      decoration: const InputDecoration(
+                        hintText: "Type a message...",
+                        border: InputBorder.none,
+                      ),
+                    ),
                   ),
-                  onPressed: handelSendMessege,
-                ),
-              ],
+                  IconButton(
+                    icon: const Icon(Icons.send, color: Colors.blue),
+                    onPressed: () {
+                      if (_messageController.text.trim().isEmpty) return;
+                      context.read<ChatCubit>().sendMessage(
+                        chatRoomId:
+                            (context.read<ChatCubit>().state as ChatLoaded)
+                                .chatRoom
+                                .id,
+                        senderId: Supabase.instance.client.auth.currentUser!.id,
+                        receiverId: widget.receviedId!,
+                        content: _messageController.text.trim(),
+                      );
+                      _messageController.clear();
+                    },
+                  ),
+                ],
+              ),
             ),
           ),
         ],
@@ -205,62 +182,56 @@ class MessegeBubbel extends StatelessWidget {
   final bool isMe;
   final bool showTime;
 
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      margin: EdgeInsets.symmetric(vertical: 4.h, horizontal: 8.w),
-      alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
-      child: Column(
-        crossAxisAlignment: isMe
-            ? CrossAxisAlignment.end
-            : CrossAxisAlignment.start,
-        children: [
-          Container(
-            padding: EdgeInsets.all(10.w),
-            decoration: BoxDecoration(
-              color: isMe
-                  ? Theme.of(context).primaryColor.withOpacity(0.8)
-                  : Colors.grey.shade300,
-              borderRadius: BorderRadius.circular(12.r),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Flexible(
-                  child: Text(
-                    chatMessage.content,
-                    style: TextStyle(
-                      color: isMe ? Colors.white : Colors.black87,
-                      fontSize: 14.sp,
-                    ),
-                  ),
-                ),
-                8.horizontalSpace,
-                Icon(
-                  Icons.done_all,
-                  size: 16.sp,
-                  color: chatMessage.status == MessageStatus.read
-                      ? Colors.blue
-                      : Colors.white,
-                ),
-              ],
-            ),
-          ),
-          if (showTime)
-            Padding(
-              padding: EdgeInsets.only(top: 2.h),
-              child: Text(
-                _formatTime(chatMessage.createdAt),
-                style: TextStyle(fontSize: 10.sp, color: Colors.grey),
-              ),
-            ),
-        ],
-      ),
-    );
-  }
-
   String _formatTime(DateTime time) {
     final local = time.toLocal();
-    return "${local.hour}:${local.minute.toString().padLeft(2, '0')}";
+    final hour = local.hour.toString().padLeft(2, '0');
+    final minute = local.minute.toString().padLeft(2, '0');
+    return "$hour:$minute";
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Align(
+      alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
+      child: Container(
+        margin: EdgeInsets.symmetric(vertical: 4.h, horizontal: 8.w),
+        padding: EdgeInsets.all(10.w),
+        decoration: BoxDecoration(
+          color: isMe ? Colors.blueAccent : Colors.grey[700],
+          borderRadius: BorderRadius.circular(12.r),
+        ),
+        child: Column(
+          crossAxisAlignment: isMe
+              ? CrossAxisAlignment.end
+              : CrossAxisAlignment.start,
+          children: [
+            Text(
+              chatMessage.content,
+              style: const TextStyle(color: Colors.white),
+            ),
+            if (showTime)
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    _formatTime(chatMessage.createdAt),
+                    style: TextStyle(fontSize: 10.sp, color: Colors.white70),
+                  ),
+                  if (isMe) ...[
+                    SizedBox(width: 4.w),
+                    Icon(
+                      Icons.done_all,
+                      size: 16.sp,
+                      color: chatMessage.status == MessageStatus.read
+                          ? Colors.blue
+                          : Colors.white70,
+                    ),
+                  ],
+                ],
+              ),
+          ],
+        ),
+      ),
+    );
   }
 }
