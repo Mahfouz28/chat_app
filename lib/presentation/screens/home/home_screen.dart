@@ -244,7 +244,7 @@ class _HomeScreenState extends State<HomePage> {
                       ],
                     ),
                     subtitle: Text(
-                      '${room['last_message']}',
+                      room['last_message'] ?? 'say hi to your new friend',
                       style: TextStyle(
                         fontSize: 14,
                         color: Colors.grey,
