@@ -1,8 +1,6 @@
 import 'package:chat_app/config/image/app_image.dart';
 import 'package:chat_app/data/repo/auth_repo.dart';
-
 import 'package:flutter/material.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -13,20 +11,28 @@ class SplashScreen extends StatefulWidget {
 
 class _SplashScreenState extends State<SplashScreen> {
   int opacity = 0;
-  final session = Supabase.instance.client.auth.currentSession;
 
   @override
   void initState() {
     super.initState();
-    Future.delayed(Duration.zero, () {
+
+    // ابدأ الأنيميشن بعد ما الـ UI يترسم
+    WidgetsBinding.instance.addPostFrameCallback((_) {
       setState(() {
         opacity = 1;
       });
-    });
 
-    Future.delayed(const Duration(seconds: 3), () {
-      AuthRepository().checkAuth(context);
+      // ندي فرصة للسيرفيس تتهيأ (Supabase, services locator ...)
+      Future.delayed(const Duration(seconds: 2), () async {
+        await _navigateNext();
+      });
     });
+  }
+
+  Future<void> _navigateNext() async {
+    // استخدام AuthRepository بشكل آمن
+    if (!mounted) return;
+    await AuthRepository().checkAuth(context);
   }
 
   @override

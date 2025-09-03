@@ -9,22 +9,31 @@ import 'package:chat_app/data/repo/chat_repo.dart';
 import 'package:chat_app/services_locator.dart';
 import 'package:chat_app/core/subaBase/suba_base_keys.dart';
 
-void main() async {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
+  // نستنى Supabase يخلص
   await Supabase.initialize(
     url: SubaBaseKeys.projectURL,
     anonKey: SubaBaseKeys.apiKey,
   );
 
-  init();
+  // هنا نستدعي init اللي في services_locator.dart
+  serviceLocator();
 
-  runApp(
-    MultiBlocProvider(
+  runApp(const MyAppProviders());
+}
+
+class MyAppProviders extends StatelessWidget {
+  const MyAppProviders({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return MultiBlocProvider(
       providers: [BlocProvider(create: (context) => ChatCubit(sl<ChatRepo>()))],
       child: const MyApp(),
-    ),
-  );
+    );
+  }
 }
 
 class MyApp extends StatelessWidget {
@@ -36,17 +45,11 @@ class MyApp extends StatelessWidget {
       designSize: const Size(360, 690),
       minTextAdapt: true,
       splitScreenMode: true,
-      // Use builder only if you need to use library outside ScreenUtilInit context
-      builder: (_, child) {
-        return MaterialApp(
-          debugShowCheckedModeBanner: false,
-
-          // You can use the library anywhere in the app even in theme
-          theme: AppTheme.lightTheme,
-
-          home: SplashScreen(),
-        );
-      },
+      builder: (_, _) => MaterialApp(
+        debugShowCheckedModeBanner: false,
+        theme: AppTheme.lightTheme,
+        home: const SplashScreen(),
+      ),
     );
   }
 }

@@ -132,19 +132,24 @@ class ChatRepo {
   }
 
   /// تحديث حالة الرسائل عند القراءة
-  Future<void> markAsRead(String chatRoomId, String userId) async {
-    // تحديث الرسائل
+  Future<void> markAsRead(String chatRoomId, String currentUserId) async {
+    final supabase = Supabase.instance.client;
+
+    // 1️⃣ تحديث الرسائل الغير مقروءة
     await supabase
         .from('messages')
         .update({'status': 'read'})
         .eq('chat_room_id', chatRoomId)
-        .eq('receiver_id', userId);
+        .neq('sender_id', currentUserId) // الرسائل اللي جت من الطرف التاني
+        .neq('status', 'read'); // نتأكد إنها مش مقروءة بالفعل
 
-    // تحديث آخر وقت قراءة في الـ ChatRoom
+    // 2️⃣ تحديث آخر وقت قراءة لكل يوزر
     await supabase
         .from('chat_rooms')
         .update({
-          'last_read': {userId: DateTime.now().toUtc().toIso8601String()},
+          'last_read': {
+            currentUserId: DateTime.now().toUtc().toIso8601String(),
+          },
         })
         .eq('id', chatRoomId);
   }

@@ -6,7 +6,7 @@ import 'package:chat_app/data/repo/auth_repo.dart';
 
 final sl = GetIt.instance;
 
-void init() {
+void serviceLocator() {
   sl.registerLazySingleton<AuthRepository>(() => AuthRepository());
   sl.registerLazySingleton(() => ContactsRepo());
   sl.registerLazySingleton<ChatRepo>(() => ChatRepo());

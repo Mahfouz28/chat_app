@@ -96,13 +96,18 @@ class _ChatMessgeScreenState extends State<ChatMessgeScreen> {
                     reverse: true,
                     itemCount: messages.length,
                     itemBuilder: (context, index) {
-                      // ⬅️ لازم نقلب الليست عشان تظهر أحدث رسالة تحت
                       final reversedMessages = messages.reversed.toList();
                       final msg = reversedMessages[index];
 
                       final isMe =
                           msg.senderId ==
                           Supabase.instance.client.auth.currentUser!.id;
+                      if (!isMe && msg.status != MessageStatus.read) {
+                        context.read<ChatCubit>().markMessageAsRead(
+                          msg.id,
+                          Supabase.instance.client.auth.currentUser!.id,
+                        );
+                      }
 
                       return MessegeBubbel(
                         chatMessage: msg,
@@ -222,9 +227,16 @@ class MessegeBubbel extends StatelessWidget {
                     Icon(
                       Icons.done_all,
                       size: 16.sp,
-                      color: chatMessage.status == MessageStatus.read
-                          ? Colors.blue
-                          : Colors.white70,
+                      color: () {
+                        switch (chatMessage.status) {
+                          case MessageStatus.sent:
+                            return Colors.white70; // صح واحدة رمادي
+                          case MessageStatus.delivered:
+                            return Colors.white70; // صحين رمادي
+                          case MessageStatus.read:
+                            return Colors.blue; // صحين أزرق (Seen)
+                        }
+                      }(),
                     ),
                   ],
                 ],

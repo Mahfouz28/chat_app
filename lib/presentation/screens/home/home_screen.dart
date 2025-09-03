@@ -1,49 +1,60 @@
-// ignore_for_file: dead_code
-
 import 'package:chat_app/core/common/snackBar.dart';
 import 'package:chat_app/data/model/user_model.dart';
 import 'package:chat_app/data/repo/auth_repo.dart';
 import 'package:chat_app/data/repo/contacts_repo.dart';
-import 'package:chat_app/data/repo/home_repo.dart';
+import 'package:chat_app/data/repo/chat_repo.dart';
 import 'package:chat_app/presentation/screens/auth/login_screen.dart';
 import 'package:chat_app/presentation/screens/chat/chat_messge_screen.dart';
 import 'package:chat_app/services_locator.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:chat_app/logic/cubit/chat/chat_cubit.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
 
   @override
-  State<HomePage> createState() => _HomeScreenState();
+  State<HomePage> createState() => _HomePageState();
 }
 
-class _HomeScreenState extends State<HomePage> {
+class _HomePageState extends State<HomePage> {
   late final String _currentUserId;
   late final ContactsRepo contactsRepo;
-  late final HomeRepo homeRepo;
+  late final ChatRepo chatRepo;
+
   List<Map<String, dynamic>> _chatRooms = [];
 
   @override
   void initState() {
-    _currentUserId = Supabase.instance.client.auth.currentUser!.id;
-    homeRepo = sl<HomeRepo>();
-    contactsRepo = sl<ContactsRepo>();
-    _fetchChatRooms();
     super.initState();
+    _currentUserId = Supabase.instance.client.auth.currentUser!.id;
+    chatRepo = sl<ChatRepo>();
+    contactsRepo = sl<ContactsRepo>();
+    _subscribeChatRooms();
   }
 
-  Future<void> _fetchChatRooms() async {
-    try {
-      _chatRooms = await homeRepo.fetchUserChatRooms(_currentUserId);
+  void _subscribeChatRooms() {
+    Supabase.instance.client
+        .from('chat_rooms')
+        .stream(primaryKey: ['id'])
+        .listen((rooms) {
+          if (!mounted) return;
 
-      setState(() {
-        _chatRooms;
-      });
-    } catch (e) {
-      print("Error fetching chat rooms: $e");
-    }
+          // filter only rooms where current user is participant
+          final myRooms = rooms
+              .where(
+                (room) => (room['participants'] as List<dynamic>).contains(
+                  _currentUserId,
+                ),
+              )
+              .toList();
+
+          setState(() {
+            _chatRooms = myRooms;
+          });
+        });
   }
 
   void showContactsList(BuildContext context) async {
@@ -81,49 +92,50 @@ class _HomeScreenState extends State<HomePage> {
                   future: contactsRepo.getRegisteredContacts(),
                   builder: (context, snapshot) {
                     if (snapshot.connectionState == ConnectionState.waiting) {
-                      return Center(child: CircularProgressIndicator());
+                      return const Center(child: CircularProgressIndicator());
                     }
                     if (snapshot.hasError) {
                       return Center(child: Text('Error: ${snapshot.error}'));
                     }
                     if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                      return Center(child: Text('No Contacts'));
+                      return const Center(child: Text('No Contacts'));
                     }
 
                     final contacts = snapshot.data!;
-
-                    return Expanded(
-                      child: ListView.builder(
-                        itemCount: contacts.length,
-                        itemBuilder: (context, index) {
-                          final contact = contacts[index];
-                          return ListTile(
-                            onTap: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => ChatMessgeScreen(
+                    return ListView.builder(
+                      itemCount: contacts.length,
+                      itemBuilder: (context, index) {
+                        final contact = contacts[index];
+                        return ListTile(
+                          onTap: () {
+                            // فتح غرفة دردشة مع Cubit
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => BlocProvider(
+                                  create: (_) => ChatCubit(chatRepo),
+                                  child: ChatMessgeScreen(
                                     receviedId: contact.id,
                                     receviedName: contact.fullName,
                                   ),
                                 ),
-                              );
-                            },
-                            leading: CircleAvatar(
-                              backgroundColor: Theme.of(
-                                context,
-                              ).primaryColor.withOpacity(.2),
-                              child: Text(
-                                contact.fullName.isNotEmpty
-                                    ? contact.fullName[0].toUpperCase()
-                                    : "?",
                               ),
+                            );
+                          },
+                          leading: CircleAvatar(
+                            backgroundColor: Theme.of(
+                              context,
+                            ).primaryColor.withOpacity(.2),
+                            child: Text(
+                              contact.fullName.isNotEmpty
+                                  ? contact.fullName[0].toUpperCase()
+                                  : "?",
                             ),
-                            title: Text(contact.fullName),
-                            subtitle: Text(contact.phoneNumber),
-                          );
-                        },
-                      ),
+                          ),
+                          title: Text(contact.fullName),
+                          subtitle: Text(contact.phoneNumber),
+                        );
+                      },
                     );
                   },
                 ),
@@ -143,7 +155,7 @@ class _HomeScreenState extends State<HomePage> {
         onPressed: () {
           showContactsList(context);
         },
-        child: Icon(Icons.messenger, size: 25, color: Colors.white),
+        child: const Icon(Icons.messenger, size: 25, color: Colors.white),
       ),
       body: Padding(
         padding: EdgeInsets.symmetric(horizontal: 16.0.r, vertical: 40.r),
@@ -173,9 +185,7 @@ class _HomeScreenState extends State<HomePage> {
                           ),
                           actions: [
                             TextButton(
-                              onPressed: () {
-                                Navigator.of(context).pop();
-                              },
+                              onPressed: () => Navigator.of(context).pop(),
                               child: const Text("Cancel"),
                             ),
                             ElevatedButton(
@@ -188,7 +198,7 @@ class _HomeScreenState extends State<HomePage> {
                                 Navigator.pushAndRemoveUntil(
                                   context,
                                   MaterialPageRoute(
-                                    builder: (context) => LoginScreen(),
+                                    builder: (_) => const LoginScreen(),
                                   ),
                                   (route) => false,
                                 );
@@ -204,7 +214,7 @@ class _HomeScreenState extends State<HomePage> {
                       },
                     );
                   },
-                  icon: Icon(Icons.logout_outlined),
+                  icon: const Icon(Icons.logout_outlined),
                 ),
               ],
             ),
@@ -213,16 +223,13 @@ class _HomeScreenState extends State<HomePage> {
                 itemCount: _chatRooms.length,
                 itemBuilder: (context, index) {
                   final room = _chatRooms[index];
-
-                  // participants_name موجودة كـ Map<String, String>
                   final participantsMap = Map<String, String>.from(
                     room['participants_name'] ?? {},
                   );
-
                   final otherParticipantName = participantsMap.entries
                       .firstWhere(
                         (entry) => entry.key != _currentUserId,
-                        orElse: () => MapEntry('', 'No Name'),
+                        orElse: () => const MapEntry('', 'No Name'),
                       )
                       .value;
 
@@ -230,28 +237,67 @@ class _HomeScreenState extends State<HomePage> {
                     title: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text(otherParticipantName),
-                        Text(
-                          room['last_message_time'] != null
-                              ? TimeOfDay.fromDateTime(
-                                  DateTime.parse(
-                                    room['last_message_time'],
-                                  ).toLocal(),
-                                ).format(context)
-                              : '',
-                          style: TextStyle(fontSize: 12, color: Colors.grey),
+                        Expanded(
+                          child: Text(
+                            otherParticipantName,
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            const SizedBox(height: 2),
+                            Text(
+                              room['last_message_time'] != null
+                                  ? TimeOfDay.fromDateTime(
+                                      DateTime.parse(
+                                        room['last_message_time'],
+                                      ).toLocal(),
+                                    ).format(context)
+                                  : '',
+                              style: const TextStyle(
+                                fontSize: 12,
+                                color: Colors.grey,
+                              ),
+                            ),
+                          ],
                         ),
                       ],
                     ),
+
                     subtitle: Text(
-                      room['last_message'] ?? 'say hi to your new friend',
-                      style: TextStyle(
+                      room['last_message'] ?? 'Say hi to your new friend',
+                      style: const TextStyle(
                         fontSize: 14,
                         color: Colors.grey,
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
-                    onTap: () {},
+                    onTap: () {
+                      // فتح غرفة دردشة باستخدام Cubit
+                      final otherId = participantsMap.keys.firstWhere(
+                        (id) => id != _currentUserId,
+                      );
+                      final otherName = participantsMap[otherId] ?? 'No Name';
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => BlocProvider(
+                            create: (_) =>
+                                ChatCubit(chatRepo)
+                                  ..loadChat(_currentUserId, otherId),
+                            child: ChatMessgeScreen(
+                              receviedId: otherId,
+                              receviedName: otherName,
+                            ),
+                          ),
+                        ),
+                      );
+                    },
                   );
                 },
               ),

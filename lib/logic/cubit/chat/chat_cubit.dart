@@ -43,32 +43,44 @@ class ChatCubit extends Cubit<ChatState> {
     required String content,
   }) async {
     try {
-      final message = await chatRepo.sendMessage(
+      // إرسال الرسالة فقط، دون تعديل state
+      await chatRepo.sendMessage(
         chatRoomId: chatRoomId,
         senderId: senderId,
         receiverId: receiverId,
         content: content,
       );
-
-      final currentState = state;
-      if (currentState is ChatLoaded) {
-        emit(
-          ChatLoaded(
-            chatRoom: currentState.chatRoom,
-            messages: [...currentState.messages, message]
-              ..sort((a, b) => a.createdAt.compareTo(b.createdAt)),
-          ),
-        );
-      }
     } catch (e) {
       emit(ChatError(e.toString()));
     }
   }
 
+  /// تحديث حالة الرسالة عند القراءة
   Future<void> markMessageAsRead(String messageId, String userId) async {
-    await chatRepo.markAsRead(messageId, userId);
+    try {
+      await chatRepo.markAsRead(messageId, userId);
+
+      final currentState = state;
+      if (currentState is ChatLoaded) {
+        // نحدث الرسالة محليًا كمان
+        final updatedMessages = currentState.messages.map((msg) {
+          if (msg.id == messageId) {
+            return msg.copyWith(
+              status: MessageStatus.read,
+              seenBy: [...msg.seenBy, userId],
+            );
+          }
+          return msg;
+        }).toList();
+
+        emit(currentState.copyWith(messages: updatedMessages));
+      }
+    } catch (e) {
+      print("Error marking as read: $e");
+    }
   }
 
+  /// حالة الكتابة
   void setTyping(bool isTyping, {String? typingUserId}) {
     final currentState = state;
     if (currentState is ChatLoaded) {
