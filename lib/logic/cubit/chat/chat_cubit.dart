@@ -54,27 +54,66 @@ class ChatCubit extends Cubit<ChatState> {
     }
   }
 
-  /// تحديث كل الرسائل في الغرفة (Batch)
+  /// تحديث رسالة واحدة عند مشاهدتها
+  Future<void> markMessageAsRead(String messageId, String userId) async {
+    try {
+      final currentState = state;
+      if (currentState is! ChatLoaded) return;
+
+      final updatedMessages = currentState.messages.map((msg) {
+        if (msg.id == messageId && !msg.seenBy.contains(userId)) {
+          final updatedMsg = msg.copyWith(
+            status: MessageStatus.read,
+            seenBy: [...msg.seenBy, userId],
+          );
+
+          // تحديث قاعدة البيانات لكل رسالة
+          chatRepo.markAsRead(msg.id, userId, currentState.chatRoom.id);
+
+          return updatedMsg;
+        }
+        return msg;
+      }).toList();
+
+      // تحديث حالة آخر رسالة في الغرفة
+      if (updatedMessages.isNotEmpty) {
+        final lastMessage = updatedMessages.last;
+        chatRepo.updateChatRoomLastMessageStatus(
+          currentState.chatRoom.id,
+          lastMessage.status.name,
+        );
+      }
+
+      emit(currentState.copyWith(messages: updatedMessages));
+    } catch (e) {
+      print("Error in markMessageAsRead: $e");
+    }
+  }
+
+  /// Batch update: كل الرسائل في الغرفة تقرأ
   Future<void> markAllAsRead(String chatRoomId, String userId) async {
     try {
-      await chatRepo.markAsRead(chatRoomId, userId, chatRoomId);
-
       final currentState = state;
-      if (currentState is ChatLoaded) {
-        final updatedMessages = currentState.messages.map((msg) {
-          if (msg.senderId != userId && msg.status != MessageStatus.read) {
-            return msg.copyWith(
-              status: MessageStatus.read,
-              seenBy: [...msg.seenBy, userId],
-            );
-          }
-          return msg;
-        }).toList();
-        print(
-          '=========================markAllAsRead called, updatedMessages: $updatedMessages',
-        );
-        emit(currentState.copyWith(messages: updatedMessages));
-      }
+      if (currentState is! ChatLoaded) return;
+
+      final updatedMessages = currentState.messages.map((msg) {
+        if (msg.senderId != userId && !msg.seenBy.contains(userId)) {
+          chatRepo.markAsRead(msg.id, userId, chatRoomId);
+          return msg.copyWith(
+            status: MessageStatus.read,
+            seenBy: [...msg.seenBy, userId],
+          );
+        }
+        return msg;
+      }).toList();
+
+      // تحديث last_message_status للغرفة
+      chatRepo.updateChatRoomLastMessageStatus(
+        chatRoomId,
+        MessageStatus.read.name,
+      );
+
+      emit(currentState.copyWith(messages: updatedMessages));
     } catch (e) {
       print("Error in markAllAsRead: $e");
     }

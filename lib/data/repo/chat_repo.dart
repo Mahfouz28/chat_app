@@ -135,56 +135,102 @@ class ChatRepo {
         .toList();
   }
 
-  /// تحديث حالة الرسالة عند القراءة
   Future<void> markAsRead(
     String messageId,
     String userId,
     String chatRoomId,
   ) async {
     try {
-      // جلب الرسالة نفسها من جدول messages
       final message = await supabase
           .from('messages')
-          .select('status, seen_by')
+          .select('id, status, seen_by, created_at')
           .eq('id', messageId)
           .maybeSingle();
 
       if (message == null) return;
 
-      final seenBy =
-          (message['seen_by'] as List<dynamic>?)
-              ?.map((e) => e.toString())
-              .toList() ??
-          [];
+      final seenBy = (message['seen_by'] as List<dynamic>? ?? [])
+          .map((e) => e.toString())
+          .toList();
 
-      bool needsUpdate = false;
+      final newSeenBy = seenBy.contains(userId) ? seenBy : [...seenBy, userId];
 
-      // إضافة المستخدم لقائمة من قرأ الرسالة
-      if (!seenBy.contains(userId)) {
-        seenBy.add(userId);
-        needsUpdate = true;
-      }
-
-      // تحديث حالة الرسالة إذا لم تكن read
-      if (message['status'] != 'read') {
-        needsUpdate = true;
-      }
-
-      if (needsUpdate) {
-        await supabase
-            .from('messages')
-            .update({'status': 'read', 'seen_by': seenBy})
-            .eq('id', messageId);
-      }
-
-      // تحديث حالة آخر رسالة في chat_rooms
       await supabase
-          .from('chat_rooms')
-          .update({'last_message_status': 'read'})
-          .eq('id', chatRoomId);
-      print('markAsRead: Message $messageId marked as read by $userId');
+          .from('messages')
+          .update({'status': 'read', 'seen_by': newSeenBy})
+          .eq('id', messageId);
+
+      // تحديث chat_rooms بناءً على آخر رسالة فعلية
+      final lastMessage = await supabase
+          .from('messages')
+          .select('id, status')
+          .eq('chat_room_id', chatRoomId)
+          .order('created_at', ascending: false)
+          .limit(1)
+          .maybeSingle();
+
+      if (lastMessage != null) {
+        await supabase
+            .from('chat_rooms')
+            .update({'last_message_status': lastMessage['status']})
+            .eq('id', chatRoomId);
+      }
     } catch (e) {
       print("Error in markAsRead: $e");
     }
   }
+
+  Future<void> markMessagesAsReadBatch(String chatRoomId, String userId) async {
+    final unreadMessages = await supabase
+        .from('messages')
+        .select('id, seen_by, status, sender_id')
+        .eq('chat_room_id', chatRoomId)
+        .neq('sender_id', userId)
+        .neq('status', 'read');
+
+    final updatedIds = <String>[];
+
+    for (var msg in unreadMessages) {
+      final seenBy = (msg['seen_by'] as List<dynamic>? ?? [])
+          .map((e) => e.toString())
+          .toList();
+      if (!seenBy.contains(userId)) {
+        updatedIds.add(msg['id'] as String);
+      }
+    }
+
+    if (updatedIds.isNotEmpty) {
+      await supabase
+          .from('messages')
+          .update({
+            'status': 'read',
+            'seen_by': Supabase.instance.client.rpc(
+              'array_append',
+              params: {
+                'column': 'seen_by',
+                'value': [userId],
+              },
+            ),
+          })
+          .filter('id', 'in', updatedIds);
+    }
+
+    // تحديث آخر رسالة في chat_rooms
+    final lastMessage = await supabase
+        .from('messages')
+        .select('id, status')
+        .eq('chat_room_id', chatRoomId)
+        .order('created_at', ascending: false)
+        .limit(1)
+        .maybeSingle();
+
+    if (lastMessage != null) {
+      await supabase
+          .from('chat_rooms')
+          .update({'last_message_status': lastMessage['status']})
+          .eq('id', chatRoomId);
+    }
+  }
+
+  Future<void> updateChatRoomLastMessageStatus(String id, String name) async {}
 }

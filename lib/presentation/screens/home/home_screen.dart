@@ -42,7 +42,6 @@ class _HomePageState extends State<HomePage> {
         .listen((rooms) {
           if (!mounted) return;
 
-          // filter only rooms where current user is participant
           final myRooms = rooms
               .where(
                 (room) => (room['participants'] as List<dynamic>).contains(
@@ -108,7 +107,6 @@ class _HomePageState extends State<HomePage> {
                         final contact = contacts[index];
                         return ListTile(
                           onTap: () {
-                            // فتح غرفة دردشة مع Cubit
                             Navigator.push(
                               context,
                               MaterialPageRoute(
@@ -147,14 +145,17 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
+  /// Helper to check last message status for styling
+  bool isLastMessageRead(Map<String, dynamic> room) {
+    return room['last_message_status'] == 'sent';
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       floatingActionButton: FloatingActionButton(
         backgroundColor: Theme.of(context).primaryColor,
-        onPressed: () {
-          showContactsList(context);
-        },
+        onPressed: () => showContactsList(context),
         child: const Icon(Icons.messenger, size: 25, color: Colors.white),
       ),
       body: Padding(
@@ -233,6 +234,8 @@ class _HomePageState extends State<HomePage> {
                       )
                       .value;
 
+                  final lastMessageRead = isLastMessageRead(room);
+
                   return ListTile(
                     title: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -268,25 +271,18 @@ class _HomePageState extends State<HomePage> {
                         ),
                       ],
                     ),
-
                     subtitle: Text(
                       room['last_message'] ?? 'Say hi to your new friend',
                       style: TextStyle(
                         fontSize: 14,
-                        fontWeight: (room['last_message_status'] == 'read')
-                            ? FontWeight
-                                  .normal // لو اتقرت تبقى عادي
-                            : FontWeight.bold, // لو لسه مش متشافه Bold
-                        color: (room['last_message_status'] == 'read')
-                            ? Colors
-                                  .grey // بعد القراءة تبقى رمادي
-                            : Colors.black, // قبل القراءة ت  بقى أسود
-                        overflow: TextOverflow.ellipsis,
+                        fontWeight: lastMessageRead
+                            ? FontWeight.normal
+                            : FontWeight.bold,
+                        color: lastMessageRead ? Colors.grey : Colors.black,
                       ),
+                      overflow: TextOverflow.ellipsis,
                     ),
-
                     onTap: () {
-                      // فتح غرفة دردشة باستخدام Cubit
                       final otherId = participantsMap.keys.firstWhere(
                         (id) => id != _currentUserId,
                       );

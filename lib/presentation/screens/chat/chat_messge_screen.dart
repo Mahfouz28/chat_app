@@ -5,17 +5,17 @@ import 'package:chat_app/logic/cubit/chat/chat_status.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:chat_app/logic/cubit/chat/chat_cubit.dart';
 import 'package:flutter/material.dart';
-import 'package:visibility_detector/visibility_detector.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class ChatMessgeScreen extends StatefulWidget {
   const ChatMessgeScreen({super.key, this.receviedId, this.receviedName});
 
-  @override
-  State<ChatMessgeScreen> createState() => _ChatMessgeScreenState();
   final String? receviedId;
   final String? receviedName;
+
+  @override
+  State<ChatMessgeScreen> createState() => _ChatMessgeScreenState();
 }
 
 class _ChatMessgeScreenState extends State<ChatMessgeScreen> {
@@ -24,15 +24,14 @@ class _ChatMessgeScreenState extends State<ChatMessgeScreen> {
   @override
   void initState() {
     super.initState();
-    context.read<ChatCubit>().loadChat(
-      Supabase.instance.client.auth.currentUser!.id,
-      widget.receviedId!,
-    );
+    final currentUserId = Supabase.instance.client.auth.currentUser!.id;
+    context.read<ChatCubit>().loadChat(currentUserId, widget.receviedId!);
   }
 
   @override
   Widget build(BuildContext context) {
     final name = widget.receviedName ?? "";
+
     return Scaffold(
       appBar: AppBar(
         title: Row(
@@ -93,34 +92,30 @@ class _ChatMessgeScreenState extends State<ChatMessgeScreen> {
                       ),
                     );
                   }
+
+                  final currentUserId =
+                      Supabase.instance.client.auth.currentUser!.id;
+
                   return ListView.builder(
                     reverse: true,
                     itemCount: messages.length,
                     itemBuilder: (context, index) {
                       final reversedMessages = messages.reversed.toList();
                       final msg = reversedMessages[index];
-
-                      final currentUserId =
-                          Supabase.instance.client.auth.currentUser!.id;
                       final isMe = msg.senderId == currentUserId;
 
-                      return VisibilityDetector(
-                        key: Key(msg.id),
-                        onVisibilityChanged: (info) {
-                          if (info.visibleFraction > 0.7 &&
-                              !isMe &&
-                              msg.status != MessageStatus.read) {
-                            context.read<ChatCubit>().markAllAsRead(
-                              msg.id,
-                              currentUserId,
-                            );
-                          }
-                        },
-                        child: MessegeBubbel(
-                          chatMessage: msg,
-                          isMe: isMe,
-                          showTime: true,
-                        ),
+                      // ====== Update seenBy automatically for incoming messages =====
+                      if (!isMe && !msg.seenBy.contains(currentUserId)) {
+                        context.read<ChatCubit>().markAllAsRead(
+                          msg.id,
+                          currentUserId,
+                        );
+                      }
+
+                      return MessegeBubbel(
+                        chatMessage: msg,
+                        isMe: isMe,
+                        showTime: true,
                       );
                     },
                   );
@@ -161,16 +156,18 @@ class _ChatMessgeScreenState extends State<ChatMessgeScreen> {
                     icon: const Icon(Icons.send, color: Colors.blue),
                     onPressed: () {
                       if (_messageController.text.trim().isEmpty) return;
-                      context.read<ChatCubit>().sendMessage(
-                        chatRoomId:
-                            (context.read<ChatCubit>().state as ChatLoaded)
-                                .chatRoom
-                                .id,
-                        senderId: Supabase.instance.client.auth.currentUser!.id,
-                        receiverId: widget.receviedId!,
-                        content: _messageController.text.trim(),
-                      );
-                      _messageController.clear();
+
+                      final currentState = context.read<ChatCubit>().state;
+                      if (currentState is ChatLoaded) {
+                        context.read<ChatCubit>().sendMessage(
+                          chatRoomId: currentState.chatRoom.id,
+                          senderId:
+                              Supabase.instance.client.auth.currentUser!.id,
+                          receiverId: widget.receviedId!,
+                          content: _messageController.text.trim(),
+                        );
+                        _messageController.clear();
+                      }
                     },
                   ),
                 ],
@@ -234,20 +231,14 @@ class MessegeBubbel extends StatelessWidget {
                     SizedBox(width: 8.w),
                     Icon(
                       chatMessage.status == MessageStatus.sent
-                          ? Icons
-                                .done_outlined // صح واحدة
-                          : Icons.done_all_outlined, // صحين
+                          ? Icons.done_outlined
+                          : chatMessage.status == MessageStatus.delivered
+                          ? Icons.done_all_outlined
+                          : Icons.done_all_outlined,
                       size: 16.sp,
-                      color: () {
-                        switch (chatMessage.status) {
-                          case MessageStatus.sent:
-                            return Colors.white; // صح واحدة outline رمادي
-                          case MessageStatus.delivered:
-                            return Colors.white; // صحين outline أسود
-                          case MessageStatus.read:
-                            return Colors.lightBlueAccent; // صحين outline أزرق
-                        }
-                      }(),
+                      color: chatMessage.status == MessageStatus.read
+                          ? Colors.lightBlueAccent
+                          : Colors.white70,
                     ),
                   ],
                 ],
