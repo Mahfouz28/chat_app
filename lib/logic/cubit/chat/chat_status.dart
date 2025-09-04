@@ -57,11 +57,19 @@ class MessageSent extends ChatState {
 /// تحديث جزء من الداتا (رسالة جديدة - تحديث حالة قراءة)
 class ChatUpdated extends ChatState {
   final List<ChatMessageModel> messages;
-
   ChatUpdated(this.messages);
 
   @override
   List<Object?> get props => [messages];
+}
+
+/// آخر رسالة مش متشافه (عشان شاشة الـ chat list)
+class ChatLastUnseenLoaded extends ChatState {
+  final ChatMessageModel message;
+  ChatLastUnseenLoaded(this.message);
+
+  @override
+  List<Object?> get props => [message];
 }
 
 /// لو حصل خطأ

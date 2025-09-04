@@ -5,6 +5,7 @@ import 'package:chat_app/logic/cubit/chat/chat_status.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:chat_app/logic/cubit/chat/chat_cubit.dart';
 import 'package:flutter/material.dart';
+import 'package:visibility_detector/visibility_detector.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -99,20 +100,27 @@ class _ChatMessgeScreenState extends State<ChatMessgeScreen> {
                       final reversedMessages = messages.reversed.toList();
                       final msg = reversedMessages[index];
 
-                      final isMe =
-                          msg.senderId ==
+                      final currentUserId =
                           Supabase.instance.client.auth.currentUser!.id;
-                      if (!isMe && msg.status != MessageStatus.read) {
-                        context.read<ChatCubit>().markMessageAsRead(
-                          msg.id,
-                          Supabase.instance.client.auth.currentUser!.id,
-                        );
-                      }
+                      final isMe = msg.senderId == currentUserId;
 
-                      return MessegeBubbel(
-                        chatMessage: msg,
-                        isMe: isMe,
-                        showTime: true,
+                      return VisibilityDetector(
+                        key: Key(msg.id),
+                        onVisibilityChanged: (info) {
+                          if (info.visibleFraction > 0.7 &&
+                              !isMe &&
+                              msg.status != MessageStatus.read) {
+                            context.read<ChatCubit>().markAllAsRead(
+                              msg.id,
+                              currentUserId,
+                            );
+                          }
+                        },
+                        child: MessegeBubbel(
+                          chatMessage: msg,
+                          isMe: isMe,
+                          showTime: true,
+                        ),
                       );
                     },
                   );
@@ -220,21 +228,24 @@ class MessegeBubbel extends StatelessWidget {
                 children: [
                   Text(
                     _formatTime(chatMessage.createdAt),
-                    style: TextStyle(fontSize: 10.sp, color: Colors.white70),
+                    style: TextStyle(fontSize: 8.sp, color: Colors.white70),
                   ),
                   if (isMe) ...[
-                    SizedBox(width: 4.w),
+                    SizedBox(width: 8.w),
                     Icon(
-                      Icons.done_all,
+                      chatMessage.status == MessageStatus.sent
+                          ? Icons
+                                .done_outlined // صح واحدة
+                          : Icons.done_all_outlined, // صحين
                       size: 16.sp,
                       color: () {
                         switch (chatMessage.status) {
                           case MessageStatus.sent:
-                            return Colors.white70; // صح واحدة رمادي
+                            return Colors.white; // صح واحدة outline رمادي
                           case MessageStatus.delivered:
-                            return Colors.white70; // صحين رمادي
+                            return Colors.white; // صحين outline أسود
                           case MessageStatus.read:
-                            return Colors.blue; // صحين أزرق (Seen)
+                            return Colors.lightBlueAccent; // صحين outline أزرق
                         }
                       }(),
                     ),

@@ -271,12 +271,20 @@ class _HomePageState extends State<HomePage> {
 
                     subtitle: Text(
                       room['last_message'] ?? 'Say hi to your new friend',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 14,
-                        color: Colors.grey,
+                        fontWeight: (room['last_message_status'] == 'read')
+                            ? FontWeight
+                                  .normal // لو اتقرت تبقى عادي
+                            : FontWeight.bold, // لو لسه مش متشافه Bold
+                        color: (room['last_message_status'] == 'read')
+                            ? Colors
+                                  .grey // بعد القراءة تبقى رمادي
+                            : Colors.black, // قبل القراءة ت  بقى أسود
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
+
                     onTap: () {
                       // فتح غرفة دردشة باستخدام Cubit
                       final otherId = participantsMap.keys.firstWhere(

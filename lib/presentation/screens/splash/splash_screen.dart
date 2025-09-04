@@ -16,13 +16,11 @@ class _SplashScreenState extends State<SplashScreen> {
   void initState() {
     super.initState();
 
-    // ابدأ الأنيميشن بعد ما الـ UI يترسم
     WidgetsBinding.instance.addPostFrameCallback((_) {
       setState(() {
         opacity = 1;
       });
 
-      // ندي فرصة للسيرفيس تتهيأ (Supabase, services locator ...)
       Future.delayed(const Duration(seconds: 2), () async {
         await _navigateNext();
       });
@@ -30,7 +28,6 @@ class _SplashScreenState extends State<SplashScreen> {
   }
 
   Future<void> _navigateNext() async {
-    // استخدام AuthRepository بشكل آمن
     if (!mounted) return;
     await AuthRepository().checkAuth(context);
   }
