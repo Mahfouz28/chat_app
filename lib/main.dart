@@ -1,5 +1,7 @@
 import 'package:chat_app/config/theme/app_theme.dart';
+import 'package:chat_app/data/repo/profile_repo.dart';
 import 'package:chat_app/logic/cubit/chat/chat_cubit.dart';
+import 'package:chat_app/logic/cubit/profile/profile_cubit.dart';
 import 'package:chat_app/presentation/screens/splash/splash_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -30,7 +32,10 @@ class MyAppProviders extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MultiBlocProvider(
-      providers: [BlocProvider(create: (context) => ChatCubit(sl<ChatRepo>()))],
+      providers: [
+        BlocProvider(create: (context) => ChatCubit(sl<ChatRepo>())),
+        BlocProvider(create: (context) => ProfileCubit(ProfileRepo())),
+      ],
       child: const MyApp(),
     );
   }

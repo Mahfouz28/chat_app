@@ -3,9 +3,12 @@ import 'package:chat_app/data/model/user_model.dart';
 import 'package:chat_app/data/repo/auth_repo.dart';
 import 'package:chat_app/data/repo/contacts_repo.dart';
 import 'package:chat_app/data/repo/chat_repo.dart';
+import 'package:chat_app/data/repo/profile_repo.dart';
+import 'package:chat_app/logic/cubit/profile/profile_cubit.dart';
 import 'package:chat_app/presentation/screens/auth/login_screen.dart';
 import 'package:chat_app/presentation/screens/chat/chat_messge_screen.dart';
 import 'package:chat_app/services_locator.dart';
+import 'package:chat_app/presentation/screens/profile/profile_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -171,6 +174,7 @@ class _HomePageState extends State<HomePage> {
                     fontWeight: FontWeight.bold,
                   ),
                 ),
+                Spacer(),
                 IconButton(
                   onPressed: () {
                     showDialog(
@@ -216,6 +220,20 @@ class _HomePageState extends State<HomePage> {
                     );
                   },
                   icon: const Icon(Icons.logout_outlined),
+                ),
+                IconButton(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => BlocProvider(
+                          create: (_) => ProfileCubit(ProfileRepo()),
+                          child: ProfileScreen(userId: _currentUserId),
+                        ),
+                      ),
+                    );
+                  },
+                  icon: const Icon(Icons.person_2_outlined),
                 ),
               ],
             ),
