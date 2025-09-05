@@ -1,3 +1,6 @@
+import 'package:chat_app/data/repo/auth_repo.dart';
+import 'package:chat_app/presentation/screens/auth/login_screen.dart';
+import 'package:chat_app/presentation/screens/profile/edit_profile_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:chat_app/logic/cubit/profile/profile_cubit.dart';
@@ -66,7 +69,26 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             Positioned(
                               right: 2,
                               bottom: 20,
-                              child: Icon(Icons.edit, size: 30.sp),
+                              child: GestureDetector(
+                                onTap: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => EditProfileScreen(
+                                        userId: widget.userId,
+                                      ),
+                                    ),
+                                  );
+                                },
+                                child: CircleAvatar(
+                                  backgroundColor: Colors.lightBlue,
+                                  child: Icon(
+                                    Icons.edit,
+                                    size: 26.sp,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              ),
                             ),
                           ],
                         ),
@@ -88,6 +110,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ],
                     ),
                   ),
+                  14.verticalSpace,
                   Text(
                     'You Email',
                     style: TextStyle(
@@ -95,10 +118,126 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       fontWeight: FontWeight.bold,
                     ),
                   ),
+                  12.verticalSpace,
+                  outlinedEmptyBox(
+                    width: double.infinity,
+                    height: 50.h,
+                    child: Padding(
+                      padding: const EdgeInsets.all(8.0),
+                      child: Row(
+                        children: [
+                          Icon(Icons.email, color: Colors.lightBlue),
+                          8.horizontalSpace,
+                          Text(
+                            user.email,
+                            style: TextStyle(
+                              color: Colors.black54,
+                              fontSize: 18.sp,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  14.verticalSpace,
+                  Text(
+                    'Phone Number',
+                    style: TextStyle(
+                      fontSize: 12.sp,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  12.verticalSpace,
+                  outlinedEmptyBox(
+                    width: double.infinity,
+                    height: 50.h,
+                    child: Padding(
+                      padding: const EdgeInsets.all(8.0),
+                      child: Row(
+                        children: [
+                          Icon(Icons.phone, color: Colors.lightBlue),
+                          8.horizontalSpace,
+                          Text(
+                            user.phoneNumber,
+                            style: TextStyle(
+                              color: Colors.black54,
+                              fontSize: 18.sp,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  14.verticalSpace,
+                  Text(
+                    'full Name',
+                    style: TextStyle(
+                      fontSize: 12.sp,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  12.verticalSpace,
+                  outlinedEmptyBox(
+                    width: double.infinity,
+                    height: 50.h,
+                    child: Padding(
+                      padding: const EdgeInsets.all(8.0),
+                      child: Row(
+                        children: [
+                          Icon(Icons.phone, color: Colors.lightBlue),
+                          8.horizontalSpace,
+                          Text(
+                            user.fullName,
+                            style: TextStyle(
+                              color: Colors.black54,
+                              fontSize: 18.sp,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  50.verticalSpace,
 
-                  // Text("Name: ${user.fullName}"),
-                  // Text("Email: ${user.email}"),
-                  // Text("Phone: ${user.phoneNumber}"),
+                  GestureDetector(
+                    onTap: () {
+                      AuthRepository().signOut();
+                      Navigator.pushReplacement(
+                        context,
+                        MaterialPageRoute(builder: (context) => LoginScreen()),
+                      );
+                    },
+                    child: outlinedEmptyBox(
+                      borderColor: Colors.red,
+                      width: double.infinity,
+                      height: 50.h,
+                      child: Padding(
+                        padding: const EdgeInsets.all(8.0),
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.logout_outlined,
+                              color: Colors.redAccent,
+                            ),
+                            96.horizontalSpace,
+                            Center(
+                              child: Text(
+                                'Logout',
+                                style: TextStyle(
+                                  color: Colors.red,
+                                  fontSize: 20.sp,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
                 ],
               ),
             );
@@ -110,4 +249,24 @@ class _ProfileScreenState extends State<ProfileScreen> {
       ),
     );
   }
+}
+
+Widget outlinedEmptyBox({
+  double width = 200,
+  double height = 120,
+  double borderRadius = 12,
+  double borderWidth = 1,
+  Color borderColor = Colors.lightBlue,
+  final child,
+}) {
+  return Container(
+    width: width,
+    height: height,
+    decoration: BoxDecoration(
+      color: Colors.transparent, // فارغة من جوّا
+      borderRadius: BorderRadius.circular(borderRadius),
+      border: Border.all(color: borderColor, width: borderWidth),
+    ),
+    child: child,
+  );
 }

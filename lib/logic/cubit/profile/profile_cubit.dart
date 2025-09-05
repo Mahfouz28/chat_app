@@ -20,4 +20,24 @@ class ProfileCubit extends Cubit<ProfileState> {
       emit(ProfileError(e.toString()));
     }
   }
+
+  Future<void> updateUserProfile({
+    required String userId,
+    String? fullName,
+    String? username,
+    String? phoneNumber,
+  }) async {
+    emit(ProfileLoading());
+    try {
+      await profileRepo.ubdateUserProfile(
+        userId: userId,
+        fullName: fullName,
+        username: username,
+        phoneNumber: phoneNumber,
+      );
+      await fetchUserProfile(userId);
+    } catch (e) {
+      emit(ProfileError(e.toString()));
+    }
+  }
 }

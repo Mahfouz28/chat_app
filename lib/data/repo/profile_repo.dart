@@ -6,7 +6,7 @@ class ProfileRepo {
 
   Future<UserModel?> getUserProfile(String userId) async {
     final data = await supabase
-        .from('users') // 👈 اتأكد إن اسم الجدول صح
+        .from('users')
         .select()
         .eq('id', userId)
         .maybeSingle();
@@ -15,5 +15,19 @@ class ProfileRepo {
       return UserModel.fromSupabase(data);
     }
     return null;
+  }
+
+  Future<void> ubdateUserProfile({
+    required String userId,
+    String? fullName,
+    String? username,
+    String? phoneNumber,
+  }) async {
+    final ubdateData = {
+      if (fullName != null) 'full_name': fullName,
+      if (username != null) 'username': username,
+      if (phoneNumber != null) 'phone_number': phoneNumber,
+    };
+    await supabase.from('users').update(ubdateData).eq('id', userId);
   }
 }
