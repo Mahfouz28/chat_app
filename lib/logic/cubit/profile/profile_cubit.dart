@@ -40,4 +40,14 @@ class ProfileCubit extends Cubit<ProfileState> {
       emit(ProfileError(e.toString()));
     }
   }
+
+  Future<void> deleteAccount(String userId) async {
+    emit(ProfileLoading());
+    try {
+      await profileRepo.delereAccount(userId);
+      emit(ProfileDeleted());
+    } catch (e) {
+      emit(ProfileError(e.toString()));
+    }
+  }
 }

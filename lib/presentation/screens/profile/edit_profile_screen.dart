@@ -1,7 +1,10 @@
+import 'package:chat_app/core/common/snackBar.dart';
+import 'package:chat_app/logic/cubit/profile/profile_state.dart';
+import 'package:chat_app/presentation/screens/auth/login_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:chat_app/logic/cubit/profile/profile_cubit.dart';
-import 'package:chat_app/logic/cubit/profile/profile_state.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 class EditProfileScreen extends StatefulWidget {
   final String userId;
@@ -12,78 +15,295 @@ class EditProfileScreen extends StatefulWidget {
 }
 
 class _EditProfileScreenState extends State<EditProfileScreen> {
-  final _nameController = TextEditingController();
-  final _phoneController = TextEditingController();
+  final nameController = TextEditingController();
+  final phoneController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<ProfileCubit>().fetchUserProfile(widget.userId);
+    });
+  }
 
   @override
   void dispose() {
-    _nameController.dispose();
-    _phoneController.dispose();
+    nameController.dispose();
+    phoneController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text("Edit Profile")),
-      body: BlocConsumer<ProfileCubit, ProfileState>(
-        listener: (context, state) {
-          if (state is ProfileLoaded) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text("Profile updated successfully!")),
-            );
-          } else if (state is ProfileError) {
-            ScaffoldMessenger.of(
-              context,
-            ).showSnackBar(SnackBar(content: Text(state.errorMessage)));
-          }
-        },
-        builder: (context, state) {
-          if (state is ProfileLoading) {
-            return const Center(child: CircularProgressIndicator());
-          } else if (state is ProfileLoaded) {
-            final user = state.user;
-            _nameController.text = user.fullName;
-            _phoneController.text = user.phoneNumber;
+    return BlocConsumer<ProfileCubit, ProfileState>(
+      listener: (context, state) {
+        if (state is ProfileLoaded) {
+          nameController.text = state.user.fullName;
+          phoneController.text = state.user.phoneNumber;
+        } else if (state is ProfileError &&
+            state.errorMessage != "User not found") {
+          AppSnackBar.show(context, message: state.errorMessage, isError: true);
+        } else if (state is ProfileLoaded) {
+          AppSnackBar.show(context, message: "Profile updated successfully!");
+          Navigator.pop(context);
+        }
+      },
+      builder: (context, state) {
+        return Scaffold(
+          appBar: AppBar(
+            title: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const SizedBox(width: 0),
+                const Text("Edit Profile"),
+                IconButton(
+                  onPressed: () {
+                    context.read<ProfileCubit>().updateUserProfile(
+                      userId: widget.userId,
+                      fullName: nameController.text.trim(),
+                      phoneNumber: phoneController.text.trim(),
+                    );
+                  },
+                  icon: const Icon(Icons.done, color: Colors.lightBlue),
+                ),
+              ],
+            ),
+          ),
+          body: BlocConsumer<ProfileCubit, ProfileState>(
+            builder: (context, state) {
+              if (state is ProfileLoading) {
+                return const Center(child: CircularProgressIndicator());
+              } else if (state is ProfileLoaded) {
+                final user = state.user;
+                return Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  child: SingleChildScrollView(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        20.verticalSpace,
+                        // صورة البروفايل
+                        Center(
+                          child: Stack(
+                            children: [
+                              CircleAvatar(
+                                radius: 70.r,
+                                backgroundColor: const Color(0xffD9D9D9),
+                                child: Text(
+                                  user.fullName[0].toUpperCase(),
+                                  style: TextStyle(fontSize: 40.sp),
+                                ),
+                              ),
+                              Positioned(
+                                right: 4,
+                                bottom: 10,
+                                child: GestureDetector(
+                                  onTap: () {
+                                    // هنا ممكن تضيف اختيار صورة
+                                  },
+                                  child: const CircleAvatar(
+                                    backgroundColor: Colors.lightBlue,
+                                    child: Icon(
+                                      Icons.edit,
+                                      size: 24,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        20.verticalSpace,
+                        Center(
+                          child: Column(
+                            children: [
+                              Text(
+                                user.username,
+                                style: TextStyle(
+                                  color: Colors.grey,
+                                  fontSize: 16.sp,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        30.verticalSpace,
 
-            return Padding(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                children: [
-                  TextField(
-                    controller: _nameController,
-                    decoration: const InputDecoration(
-                      labelText: "Full Name",
-                      border: OutlineInputBorder(),
+                        // Email ثابت
+                        Text(
+                          "Your Email",
+                          style: TextStyle(
+                            fontSize: 12.sp,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        8.verticalSpace,
+                        outlinedEmptyBox(
+                          width: double.infinity,
+                          height: 50.h,
+                          child: Padding(
+                            padding: const EdgeInsets.all(8.0),
+                            child: Row(
+                              children: [
+                                const Icon(
+                                  Icons.email,
+                                  color: Colors.lightBlue,
+                                ),
+                                8.horizontalSpace,
+                                Text(
+                                  user.email,
+                                  style: TextStyle(
+                                    color: Colors.black54,
+                                    fontSize: 18.sp,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+
+                        20.verticalSpace,
+
+                        // Phone Number (قابل للتعديل)
+                        Text(
+                          "Phone Number",
+                          style: TextStyle(
+                            fontSize: 12.sp,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        8.verticalSpace,
+                        TextField(
+                          controller: phoneController,
+                          decoration: InputDecoration(
+                            prefixIcon: const Icon(
+                              Icons.phone,
+                              color: Colors.lightBlue,
+                            ),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                        ),
+
+                        20.verticalSpace,
+
+                        Text(
+                          "Full Name",
+                          style: TextStyle(
+                            fontSize: 12.sp,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        8.verticalSpace,
+                        TextField(
+                          controller: nameController,
+                          decoration: InputDecoration(
+                            prefixIcon: const Icon(
+                              Icons.person,
+                              color: Colors.lightBlue,
+                            ),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                        ),
+
+                        50.verticalSpace,
+
+                        // Logout
+                        GestureDetector(
+                          onTap: () {
+                            context.read<ProfileCubit>().deleteAccount(
+                              widget.userId,
+                            );
+                          },
+                          child: outlinedEmptyBox(
+                            borderColor: Colors.red,
+                            width: double.infinity,
+                            height: 50.h,
+                            child: Padding(
+                              padding: const EdgeInsets.all(8.0),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  const Icon(
+                                    Icons.delete,
+                                    color: Colors.redAccent,
+                                  ),
+                                  10.horizontalSpace,
+                                  Text(
+                                    'Delete account',
+                                    style: TextStyle(
+                                      color: Colors.red,
+                                      fontSize: 20.sp,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                  const SizedBox(height: 15),
-                  TextField(
-                    controller: _phoneController,
-                    decoration: const InputDecoration(
-                      labelText: "Phone Number",
-                      border: OutlineInputBorder(),
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  ElevatedButton(
-                    onPressed: () {
-                      context.read<ProfileCubit>().updateUserProfile(
-                        userId: widget.userId,
-                        fullName: _nameController.text.trim(),
-                        phoneNumber: _phoneController.text.trim(),
-                      );
-                    },
-                    child: const Text("Save Changes"),
-                  ),
-                ],
-              ),
-            );
-          } else {
-            return const Center(child: Text("Something went wrong"));
-          }
-        },
-      ),
+                );
+              } else if (state is ProfileError) {
+                print(state.errorMessage);
+                return Center(child: Text("Error: ${state.errorMessage}"));
+              }
+              return const Center(child: CircularProgressIndicator());
+            },
+            listener: (BuildContext context, ProfileState state) {
+              if (state is ProfileDeleted) {
+                // بعد حذف الحساب، نعيد المستخدم إلى شاشة تسجيل الدخول
+                Navigator.pushAndRemoveUntil(
+                  context,
+                  MaterialPageRoute(builder: (context) => const LoginScreen()),
+                  (route) => false,
+                );
+                AppSnackBar.show(
+                  context,
+                  message:
+                      "Account deleted successfully! Please sign up again.",
+                  isError: false,
+                );
+              }
+              if (state is ProfileError &&
+                  state.errorMessage != "User not found") {
+                AppSnackBar.show(
+                  context,
+                  message: state.errorMessage,
+                  isError: true,
+                );
+              }
+            },
+          ),
+        );
+      },
     );
   }
+}
+
+Widget outlinedEmptyBox({
+  double width = 200,
+  double height = 120,
+  double borderRadius = 12,
+  double borderWidth = 1,
+  Color borderColor = Colors.lightBlue,
+  final child,
+}) {
+  return Container(
+    width: width,
+    height: height,
+    decoration: BoxDecoration(
+      color: Colors.transparent,
+      borderRadius: BorderRadius.circular(borderRadius),
+      border: Border.all(color: borderColor, width: borderWidth),
+    ),
+    child: child,
+  );
 }

@@ -30,4 +30,8 @@ class ProfileRepo {
     };
     await supabase.from('users').update(ubdateData).eq('id', userId);
   }
+
+  Future<void> delereAccount(String userId) async {
+    await supabase.from('users').delete().eq('id', userId);
+  }
 }
