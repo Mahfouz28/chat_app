@@ -3,7 +3,9 @@ import 'package:flutter_contacts/flutter_contacts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class ContactsRepo {
-  String get currentUserId => Supabase.instance.client.auth.currentUser!.id;
+  final supabase = Supabase.instance.client;
+
+  String get currentUserId => supabase.auth.currentUser!.id;
 
   /// طلب صلاحية الوصول للـ Contacts
   Future<bool> requestContactsPermission() async {
@@ -23,41 +25,43 @@ class ContactsRepo {
   /// جلب الكونتاكتس اللي متسجلين في الـ DB
   Future<List<UserModel>> getRegisteredContacts() async {
     try {
-      // تأكد أن في صلاحية
+      // 1- تأكد أن في صلاحية
       final hasPermission = await requestContactsPermission();
       if (!hasPermission) {
         throw Exception("Contacts permission denied");
       }
 
-      // جلب الكونتاكتس من الجهاز
+      // 2- جلب الكونتاكتس من الجهاز (كل الأرقام مش بس الأول)
       final contacts = await FlutterContacts.getContacts(
         withProperties: true,
-        withPhoto: true,
+        withPhoto: false,
       );
 
       final phoneNumbers = contacts
-          .where((c) => c.phones.isNotEmpty)
-          .map((c) => normalizePhone(c.phones.first.number))
-          .toSet(); // set علشان السرعة وتفادي التكرار
+          .expand((c) => c.phones.map((p) => normalizePhone(p.number)))
+          .toSet(); // Set علشان السرعة والتكرار
 
-      // جلب المستخدمين من Supabase
-      final response = await Supabase.instance.client.from('users').select();
+      if (phoneNumbers.isEmpty) return [];
 
-      final users = (response as List<dynamic>).map(
-        (doc) => UserModel.fromSupabase(doc as Map<String, dynamic>),
-      );
+      // 3- جلب المستخدمين من Supabase
+      final response = await supabase.from('users').select();
 
-      // فلترة المستخدمين اللي أرقامهم موجودة في الكونتاكتس
+      final users = (response as List<dynamic>)
+          .map((doc) => UserModel.fromSupabase(doc as Map<String, dynamic>))
+          .toList();
+
+      // 4- فلترة المستخدمين اللي أرقامهم موجودة في الكونتاكتس (ماعدا المستخدم الحالي)
       final matchedUsers = users.where((user) {
         return phoneNumbers.contains(normalizePhone(user.phoneNumber)) &&
             user.id != currentUserId;
       }).toList();
 
       return matchedUsers;
-    } catch (e, st) {
-      print('Error getting registered users: $e');
-      print(st);
-      return [];
+    } on PostgrestException catch (e) {
+      // لو فيه Error من قاعدة البيانات
+      throw Exception("Database error [${e.code}]: ${e.message}");
+    } catch (e) {
+      throw Exception("Error getting registered contacts: $e");
     }
   }
 }

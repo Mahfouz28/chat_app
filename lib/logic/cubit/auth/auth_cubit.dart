@@ -52,7 +52,7 @@ class AuthCubit extends Cubit<AuthState> {
       if (user != null) {
         emit(AuthSuccess(user));
       } else {
-        emit(AuthFailure("User not found"));
+        emit(AuthFailure("User data not found."));
       }
     } catch (e) {
       emit(AuthFailure(e.toString()));

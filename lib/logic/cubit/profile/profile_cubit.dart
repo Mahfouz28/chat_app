@@ -29,7 +29,7 @@ class ProfileCubit extends Cubit<ProfileState> {
   }) async {
     emit(ProfileLoading());
     try {
-      await profileRepo.ubdateUserProfile(
+      await profileRepo.updateUserProfile(
         userId: userId,
         fullName: fullName,
         username: username,
@@ -44,7 +44,7 @@ class ProfileCubit extends Cubit<ProfileState> {
   Future<void> deleteAccount(String userId) async {
     emit(ProfileLoading());
     try {
-      await profileRepo.delereAccount(userId);
+      await profileRepo.deleteAccount(userId);
       emit(ProfileDeleted());
     } catch (e) {
       emit(ProfileError(e.toString()));

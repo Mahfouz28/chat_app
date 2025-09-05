@@ -41,204 +41,254 @@ class _ProfileScreenState extends State<ProfileScreen> {
             return const Center(child: CircularProgressIndicator());
           } else if (state is ProfileLoaded) {
             final user = state.user;
-            return Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.start,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  SizedBox(
-                    width: double.infinity,
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Stack(
+            return SafeArea(
+              child: SingleChildScrollView(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      SizedBox(
+                        width: double.infinity,
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            SizedBox(
-                              height: 139.h,
-                              width: 139.w,
+                            Stack(
+                              children: [
+                                SizedBox(
+                                  height: 139.h,
+                                  width: 139.w,
 
-                              child: CircleAvatar(
-                                backgroundColor: Color(0xffD9D9D9),
-                                child: Text(
-                                  user.fullName[0].toUpperCase(),
-                                  style: TextStyle(fontSize: 40.sp),
-                                ),
-                              ),
-                            ),
-                            Positioned(
-                              right: 2,
-                              bottom: 20,
-                              child: GestureDetector(
-                                onTap: () {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (context) => EditProfileScreen(
-                                        userId: widget.userId,
-                                      ),
+                                  child: CircleAvatar(
+                                    backgroundColor: Color(0xffD9D9D9),
+                                    child: Text(
+                                      user.fullName[0].toUpperCase(),
+                                      style: TextStyle(fontSize: 40.sp),
                                     ),
-                                  );
-                                },
-                                child: CircleAvatar(
-                                  backgroundColor: Colors.lightBlue,
-                                  child: Icon(
-                                    Icons.edit,
-                                    size: 26.sp,
-                                    color: Colors.white,
                                   ),
                                 ),
+                                Positioned(
+                                  right: 2,
+                                  bottom: 20,
+                                  child: GestureDetector(
+                                    onTap: () async {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (context) =>
+                                              EditProfileScreen(
+                                                userId: widget.userId,
+                                              ),
+                                        ), // Pass the userId to EditProfileScreen
+                                      );
+                                      if (await Navigator.push(
+                                            context,
+                                            MaterialPageRoute(
+                                              builder: (context) =>
+                                                  EditProfileScreen(
+                                                    userId: widget.userId,
+                                                  ),
+                                            ),
+                                          ) ==
+                                          true) {
+                                        context
+                                            .read<ProfileCubit>()
+                                            .fetchUserProfile(widget.userId);
+                                      }
+                                    },
+                                    child: CircleAvatar(
+                                      backgroundColor: Colors.lightBlue,
+                                      child: Icon(
+                                        Icons.edit,
+                                        size: 26.sp,
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            Text(
+                              user.fullName,
+                              style: TextStyle(
+                                fontSize: 20.sp,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            Text(
+                              user.username,
+                              style: TextStyle(
+                                color: Colors.grey,
+                                fontSize: 16.sp,
+                                fontWeight: FontWeight.w400,
                               ),
                             ),
                           ],
                         ),
-                        Text(
-                          user.fullName,
-                          style: TextStyle(
-                            fontSize: 20.sp,
-                            fontWeight: FontWeight.bold,
-                          ),
+                      ),
+                      14.verticalSpace,
+                      Text(
+                        'You Email',
+                        style: TextStyle(
+                          fontSize: 12.sp,
+                          fontWeight: FontWeight.bold,
                         ),
-                        Text(
-                          user.username,
-                          style: TextStyle(
-                            color: Colors.grey,
-                            fontSize: 16.sp,
-                            fontWeight: FontWeight.w400,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  14.verticalSpace,
-                  Text(
-                    'You Email',
-                    style: TextStyle(
-                      fontSize: 12.sp,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  12.verticalSpace,
-                  outlinedEmptyBox(
-                    width: double.infinity,
-                    height: 50.h,
-                    child: Padding(
-                      padding: const EdgeInsets.all(8.0),
-                      child: Row(
-                        children: [
-                          Icon(Icons.email, color: Colors.lightBlue),
-                          8.horizontalSpace,
-                          Text(
-                            user.email,
-                            style: TextStyle(
-                              color: Colors.black54,
-                              fontSize: 18.sp,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ],
                       ),
-                    ),
-                  ),
-                  14.verticalSpace,
-                  Text(
-                    'Phone Number',
-                    style: TextStyle(
-                      fontSize: 12.sp,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  12.verticalSpace,
-                  outlinedEmptyBox(
-                    width: double.infinity,
-                    height: 50.h,
-                    child: Padding(
-                      padding: const EdgeInsets.all(8.0),
-                      child: Row(
-                        children: [
-                          Icon(Icons.phone, color: Colors.lightBlue),
-                          8.horizontalSpace,
-                          Text(
-                            user.phoneNumber,
-                            style: TextStyle(
-                              color: Colors.black54,
-                              fontSize: 18.sp,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  14.verticalSpace,
-                  Text(
-                    'full Name',
-                    style: TextStyle(
-                      fontSize: 12.sp,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  12.verticalSpace,
-                  outlinedEmptyBox(
-                    width: double.infinity,
-                    height: 50.h,
-                    child: Padding(
-                      padding: const EdgeInsets.all(8.0),
-                      child: Row(
-                        children: [
-                          Icon(Icons.phone, color: Colors.lightBlue),
-                          8.horizontalSpace,
-                          Text(
-                            user.fullName,
-                            style: TextStyle(
-                              color: Colors.black54,
-                              fontSize: 18.sp,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  50.verticalSpace,
-
-                  GestureDetector(
-                    onTap: () {
-                      AuthRepository().signOut();
-                      Navigator.pushReplacement(
-                        context,
-                        MaterialPageRoute(builder: (context) => LoginScreen()),
-                      );
-                    },
-                    child: outlinedEmptyBox(
-                      borderColor: Colors.red,
-                      width: double.infinity,
-                      height: 50.h,
-                      child: Padding(
-                        padding: const EdgeInsets.all(8.0),
-                        child: Row(
-                          children: [
-                            Icon(
-                              Icons.logout_outlined,
-                              color: Colors.redAccent,
-                            ),
-                            96.horizontalSpace,
-                            Center(
-                              child: Text(
-                                'Logout',
+                      12.verticalSpace,
+                      outlinedEmptyBox(
+                        width: double.infinity,
+                        height: 50.h,
+                        child: Padding(
+                          padding: const EdgeInsets.all(8.0),
+                          child: Row(
+                            children: [
+                              Icon(Icons.email, color: Colors.lightBlue),
+                              8.horizontalSpace,
+                              Text(
+                                user.email,
                                 style: TextStyle(
-                                  color: Colors.red,
-                                  fontSize: 20.sp,
+                                  color: Colors.black54,
+                                  fontSize: 18.sp,
                                   fontWeight: FontWeight.bold,
                                 ),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
                       ),
-                    ),
+                      14.verticalSpace,
+                      Text(
+                        'Phone Number',
+                        style: TextStyle(
+                          fontSize: 12.sp,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      12.verticalSpace,
+                      outlinedEmptyBox(
+                        width: double.infinity,
+                        height: 50.h,
+                        child: Padding(
+                          padding: const EdgeInsets.all(8.0),
+                          child: Row(
+                            children: [
+                              Icon(Icons.phone, color: Colors.lightBlue),
+                              8.horizontalSpace,
+                              Text(
+                                user.phoneNumber,
+                                style: TextStyle(
+                                  color: Colors.black54,
+                                  fontSize: 18.sp,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      14.verticalSpace,
+                      Text(
+                        'full Name',
+                        style: TextStyle(
+                          fontSize: 12.sp,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      12.verticalSpace,
+                      outlinedEmptyBox(
+                        width: double.infinity,
+                        height: 50.h,
+                        child: Padding(
+                          padding: const EdgeInsets.all(8.0),
+                          child: Row(
+                            children: [
+                              Icon(Icons.phone, color: Colors.lightBlue),
+                              8.horizontalSpace,
+                              Text(
+                                user.fullName,
+                                style: TextStyle(
+                                  color: Colors.black54,
+                                  fontSize: 18.sp,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      20.verticalSpace,
+                      Text(
+                        'Username',
+                        style: TextStyle(
+                          fontSize: 12.sp,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      12.verticalSpace,
+                      outlinedEmptyBox(
+                        width: double.infinity,
+                        height: 50.h,
+                        child: Padding(
+                          padding: const EdgeInsets.all(8.0),
+                          child: Row(
+                            children: [
+                              Icon(Icons.person, color: Colors.lightBlue),
+                              8.horizontalSpace,
+                              Text(
+                                user.username,
+                                style: TextStyle(
+                                  color: Colors.black54,
+                                  fontSize: 18.sp,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      30.verticalSpace,
+                      GestureDetector(
+                        onTap: () {
+                          AuthRepository().signOut();
+                          Navigator.pushReplacement(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => LoginScreen(),
+                            ),
+                          );
+                        },
+                        child: outlinedEmptyBox(
+                          borderColor: Colors.red,
+                          width: double.infinity,
+                          height: 50.h,
+                          child: Padding(
+                            padding: const EdgeInsets.all(8.0),
+                            child: Row(
+                              children: [
+                                Icon(
+                                  Icons.logout_outlined,
+                                  color: Colors.redAccent,
+                                ),
+                                96.horizontalSpace,
+                                Center(
+                                  child: Text(
+                                    'Logout',
+                                    style: TextStyle(
+                                      color: Colors.red,
+                                      fontSize: 20.sp,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
-                ],
+                ),
               ),
             );
           } else if (state is ProfileError) {

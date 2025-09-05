@@ -17,6 +17,7 @@ class EditProfileScreen extends StatefulWidget {
 class _EditProfileScreenState extends State<EditProfileScreen> {
   final nameController = TextEditingController();
   final phoneController = TextEditingController();
+  final userNameController = TextEditingController();
 
   @override
   void initState() {
@@ -30,6 +31,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   void dispose() {
     nameController.dispose();
     phoneController.dispose();
+    userNameController.dispose();
     super.dispose();
   }
 
@@ -40,6 +42,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         if (state is ProfileLoaded) {
           nameController.text = state.user.fullName;
           phoneController.text = state.user.phoneNumber;
+          userNameController.text = state.user.username;
         } else if (state is ProfileError &&
             state.errorMessage != "User not found") {
           AppSnackBar.show(context, message: state.errorMessage, isError: true);
@@ -62,7 +65,15 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                       userId: widget.userId,
                       fullName: nameController.text.trim(),
                       phoneNumber: phoneController.text.trim(),
+                      username: userNameController.text.trim(),
                     );
+                    context.read<ProfileCubit>().fetchUserProfile(
+                      widget.userId,
+                    );
+                    Navigator.pop(
+                      context,
+                      true,
+                    ); // رجّع true كإشارة إن فيه تحديث
                   },
                   icon: const Icon(Icons.done, color: Colors.lightBlue),
                 ),
@@ -75,170 +86,96 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                 return const Center(child: CircularProgressIndicator());
               } else if (state is ProfileLoaded) {
                 final user = state.user;
-                return Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 24),
-                  child: SingleChildScrollView(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        20.verticalSpace,
-                        // صورة البروفايل
-                        Center(
-                          child: Stack(
-                            children: [
-                              CircleAvatar(
-                                radius: 70.r,
-                                backgroundColor: const Color(0xffD9D9D9),
-                                child: Text(
-                                  user.fullName[0].toUpperCase(),
-                                  style: TextStyle(fontSize: 40.sp),
-                                ),
-                              ),
-                              Positioned(
-                                right: 4,
-                                bottom: 10,
-                                child: GestureDetector(
-                                  onTap: () {
-                                    // هنا ممكن تضيف اختيار صورة
-                                  },
-                                  child: const CircleAvatar(
-                                    backgroundColor: Colors.lightBlue,
-                                    child: Icon(
-                                      Icons.edit,
-                                      size: 24,
-                                      color: Colors.white,
-                                    ),
+                return SafeArea(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 24),
+                    child: SingleChildScrollView(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          20.verticalSpace,
+                          // صورة البروفايل
+                          Center(
+                            child: Stack(
+                              children: [
+                                CircleAvatar(
+                                  radius: 70.r,
+                                  backgroundColor: const Color(0xffD9D9D9),
+                                  child: Text(
+                                    user.fullName[0].toUpperCase(),
+                                    style: TextStyle(fontSize: 40.sp),
                                   ),
                                 ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        20.verticalSpace,
-                        Center(
-                          child: Column(
-                            children: [
-                              Text(
-                                user.username,
-                                style: TextStyle(
-                                  color: Colors.grey,
-                                  fontSize: 16.sp,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        30.verticalSpace,
-
-                        // Email ثابت
-                        Text(
-                          "Your Email",
-                          style: TextStyle(
-                            fontSize: 12.sp,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        8.verticalSpace,
-                        outlinedEmptyBox(
-                          width: double.infinity,
-                          height: 50.h,
-                          child: Padding(
-                            padding: const EdgeInsets.all(8.0),
-                            child: Row(
-                              children: [
-                                const Icon(
-                                  Icons.email,
-                                  color: Colors.lightBlue,
-                                ),
-                                8.horizontalSpace,
-                                Text(
-                                  user.email,
-                                  style: TextStyle(
-                                    color: Colors.black54,
-                                    fontSize: 18.sp,
-                                    fontWeight: FontWeight.bold,
+                                Positioned(
+                                  right: 4,
+                                  bottom: 10,
+                                  child: GestureDetector(
+                                    onTap: () {
+                                      // هنا ممكن تضيف اختيار صورة
+                                    },
+                                    child: const CircleAvatar(
+                                      backgroundColor: Colors.lightBlue,
+                                      child: Icon(
+                                        Icons.edit,
+                                        size: 24,
+                                        color: Colors.white,
+                                      ),
+                                    ),
                                   ),
                                 ),
                               ],
                             ),
                           ),
-                        ),
-
-                        20.verticalSpace,
-
-                        // Phone Number (قابل للتعديل)
-                        Text(
-                          "Phone Number",
-                          style: TextStyle(
-                            fontSize: 12.sp,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        8.verticalSpace,
-                        TextField(
-                          controller: phoneController,
-                          decoration: InputDecoration(
-                            prefixIcon: const Icon(
-                              Icons.phone,
-                              color: Colors.lightBlue,
-                            ),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
+                          20.verticalSpace,
+                          Center(
+                            child: Column(
+                              children: [
+                                Text(
+                                  user.fullName,
+                                  style: TextStyle(
+                                    color: Colors.black,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 18.sp,
+                                  ),
+                                ),
+                                Text(
+                                  user.username,
+                                  style: TextStyle(
+                                    color: Colors.grey,
+                                    fontSize: 16.sp,
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
-                        ),
+                          30.verticalSpace,
 
-                        20.verticalSpace,
-
-                        Text(
-                          "Full Name",
-                          style: TextStyle(
-                            fontSize: 12.sp,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        8.verticalSpace,
-                        TextField(
-                          controller: nameController,
-                          decoration: InputDecoration(
-                            prefixIcon: const Icon(
-                              Icons.person,
-                              color: Colors.lightBlue,
-                            ),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
+                          // Email ثابت
+                          Text(
+                            "Your Email",
+                            style: TextStyle(
+                              fontSize: 12.sp,
+                              fontWeight: FontWeight.bold,
                             ),
                           ),
-                        ),
-
-                        50.verticalSpace,
-
-                        // Logout
-                        GestureDetector(
-                          onTap: () {
-                            context.read<ProfileCubit>().deleteAccount(
-                              widget.userId,
-                            );
-                          },
-                          child: outlinedEmptyBox(
-                            borderColor: Colors.red,
+                          8.verticalSpace,
+                          outlinedEmptyBox(
                             width: double.infinity,
                             height: 50.h,
                             child: Padding(
                               padding: const EdgeInsets.all(8.0),
                               child: Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
                                   const Icon(
-                                    Icons.delete,
-                                    color: Colors.redAccent,
+                                    Icons.email,
+                                    color: Colors.lightBlue,
                                   ),
-                                  10.horizontalSpace,
+                                  8.horizontalSpace,
                                   Text(
-                                    'Delete account',
+                                    user.email,
                                     style: TextStyle(
-                                      color: Colors.red,
-                                      fontSize: 20.sp,
+                                      color: Colors.black54,
+                                      fontSize: 18.sp,
                                       fontWeight: FontWeight.bold,
                                     ),
                                   ),
@@ -246,8 +183,114 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                               ),
                             ),
                           ),
-                        ),
-                      ],
+
+                          20.verticalSpace,
+
+                          // Phone Number (قابل للتعديل)
+                          Text(
+                            "Phone Number",
+                            style: TextStyle(
+                              fontSize: 12.sp,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          8.verticalSpace,
+                          TextField(
+                            controller: phoneController,
+                            decoration: InputDecoration(
+                              prefixIcon: const Icon(
+                                Icons.phone,
+                                color: Colors.lightBlue,
+                              ),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                          ),
+
+                          20.verticalSpace,
+
+                          Text(
+                            "Full Name",
+                            style: TextStyle(
+                              fontSize: 12.sp,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          8.verticalSpace,
+                          TextField(
+                            controller: nameController,
+                            decoration: InputDecoration(
+                              prefixIcon: const Icon(
+                                Icons.person,
+                                color: Colors.lightBlue,
+                              ),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                          ),
+                          20.verticalSpace,
+
+                          Text(
+                            "Username",
+                            style: TextStyle(
+                              fontSize: 12.sp,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          8.verticalSpace,
+                          TextField(
+                            controller: userNameController,
+                            decoration: InputDecoration(
+                              prefixIcon: const Icon(
+                                Icons.phone,
+                                color: Colors.lightBlue,
+                              ),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                          ),
+
+                          30.verticalSpace,
+
+                          // Logout
+                          GestureDetector(
+                            onTap: () {
+                              context.read<ProfileCubit>().deleteAccount(
+                                widget.userId,
+                              );
+                            },
+                            child: outlinedEmptyBox(
+                              borderColor: Colors.red,
+                              width: double.infinity,
+                              height: 50.h,
+                              child: Padding(
+                                padding: const EdgeInsets.all(8.0),
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    const Icon(
+                                      Icons.delete,
+                                      color: Colors.redAccent,
+                                    ),
+                                    10.horizontalSpace,
+                                    Text(
+                                      'Delete account',
+                                      style: TextStyle(
+                                        color: Colors.red,
+                                        fontSize: 20.sp,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 );
