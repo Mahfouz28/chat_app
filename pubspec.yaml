@@ -24,6 +24,10 @@ dependencies:
   visibility_detector: ^0.4.0+2
   flutter_svg: ^2.2.1
   app_links:
+  record:             # للتسجيل
+  path_provider:    # لإيجاد temporary dir
+  uuid:               # لتوليد أسماء ملفات فريدة
+  audioplayers: 
 dev_dependencies:
   flutter_test:
     sdk: flutter

@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:chat_app/data/model/chat_messege_model.dart';
 import 'package:chat_app/data/model/chat_mode_model.dart';
 import 'package:flutter/foundation.dart';
@@ -263,5 +265,77 @@ class ChatRepo {
 
   Future<void> updateChatRoomLastMessageStatus(String id, String name) async {
     // TODO: Implement with proper error handling if needed
+  }
+
+  Future<String> uplodeVoiceFile({
+    required File file,
+    required String pathInBucket,
+    int signedUrlDurationSeconds = 3600,
+  }) async {
+    try {
+      // Upload the file to Supabase Storage
+      // ignore: unused_local_variable
+      final uploadRes = await supabase.storage
+          .from('chat-voices')
+          .upload(pathInBucket, file);
+
+      // if upload fails the SDK might throw; otherwise we get public or signed url.
+
+      // If bucket is public -> getPublicUrl
+      final publicUrl = supabase.storage
+          .from('chat-voices')
+          .getPublicUrl(pathInBucket);
+      // If bucket is private -> create signed url
+      if (signedUrlDurationSeconds > 0) {
+        final signed = await supabase.storage
+            .from('chat-voices')
+            .createSignedUrl(
+              pathInBucket, // String
+              signedUrlDurationSeconds, // int
+            );
+        return signed;
+      }
+
+      return publicUrl; // fallback
+    } catch (e) {
+      throw Exception("Failed to upload voice file: $e");
+    }
+  }
+
+  Future<void> sendVoiceMessage({
+    required String chatRoomId,
+    required String senderId,
+    required String receiverId,
+    required File file,
+  }) async {
+    try {
+      // 1. ارفع الملف للصوتيات
+      final fileName = 'voice_${DateTime.now().millisecondsSinceEpoch}.m4a';
+      final path = 'voices/$chatRoomId/$fileName';
+
+      final storage = Supabase.instance.client.storage.from('chat-voices');
+
+      await storage.upload(path, file);
+
+      final url = storage.getPublicUrl(path);
+
+      // 2. خزّن الرسالة في DB
+      final response = await Supabase.instance.client
+          .from('messages')
+          .insert({
+            'chat_room_id': chatRoomId,
+            'sender_id': senderId,
+            'receiver_id': receiverId,
+            'content': url, // لينك الصوت
+            'type': 'voice', // ثبات النوع
+            'status': 'sent',
+          })
+          .select()
+          .single();
+
+      print("Voice message sent: $response");
+    } catch (e) {
+      throw Exception("Failed to send voice message: $e");
+    }
   }
 }
