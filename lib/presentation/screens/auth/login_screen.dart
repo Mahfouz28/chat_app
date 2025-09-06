@@ -3,14 +3,15 @@ import 'package:chat_app/core/common/custom_text_botton.dart';
 import 'package:chat_app/core/common/custom_text_field.dart';
 import 'package:chat_app/core/common/snackBar.dart';
 import 'package:chat_app/data/repo/auth_repo.dart';
-import 'package:chat_app/logic/cubit/providers/auth_providers_cubit.dart';
-import 'package:chat_app/logic/cubit/providers/auth_providers_state.dart';
-import 'package:chat_app/presentation/screens/auth/sign_up_screen.dart';
 import 'package:chat_app/logic/cubit/auth/auth_cubit.dart';
 import 'package:chat_app/logic/cubit/auth/auth_state.dart';
+import 'package:chat_app/presentation/screens/auth/complete_details_screen.dart';
+import 'package:chat_app/presentation/screens/auth/sign_up_screen.dart';
 import 'package:chat_app/presentation/screens/home/home_screen.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:chat_app/logic/cubit/providers/auth_providers_cubit.dart';
+import 'package:chat_app/logic/cubit/providers/auth_providers_state.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_svg/svg.dart';
 
@@ -27,30 +28,48 @@ class _LoginScreenState extends State<LoginScreen> {
   final formKey = GlobalKey<FormState>();
   bool isPasswordVisible = false;
 
-  final emailFocusNode = FocusNode();
-  final passwordFocusNode = FocusNode();
-
   @override
   void dispose() {
     emailController.dispose();
     passwordController.dispose();
-    emailFocusNode.dispose();
-    passwordFocusNode.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (context) => AuthCubit(AuthRepository()),
-      child: BlocProvider(
-        create: (context) => AuthProvidersCubit(),
-        child: Scaffold(
-          body: BlocConsumer<AuthCubit, AuthState>(
+    return MultiBlocProvider(
+      providers: [
+        BlocProvider(create: (_) => AuthCubit(AuthRepository())),
+        BlocProvider(create: (_) => AuthProvidersCubit()),
+      ],
+      child: Scaffold(
+        body: BlocListener<AuthProvidersCubit, AuthProvidersState>(
+          listener: (context, state) {
+            if (state is AuthProvidersSuccess) {
+              if (state.user.fullName.isNotEmpty) {
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(builder: (_) => HomePage()),
+                );
+              } else {
+                // New user → complete details
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => CompleteDetailsScreen(
+                      email: state.user.email,
+                      fullName: state.user.fullName,
+                    ),
+                  ),
+                );
+              }
+            } else if (state is AuthProvidersError) {
+              AppSnackBar.show(context, message: state.error, isError: true);
+            }
+          },
+          child: BlocConsumer<AuthCubit, AuthState>(
             listener: (context, state) {
-              if (state is AuthLoading) {
-              } else if (state is AuthSuccess) {
-                // Navigate to HomeScreen
+              if (state is AuthSuccess) {
                 Navigator.pushReplacement(
                   context,
                   MaterialPageRoute(builder: (_) => const HomePage()),
@@ -61,14 +80,6 @@ class _LoginScreenState extends State<LoginScreen> {
               }
             },
             builder: (context, state) {
-              if (state is AuthLoading) {
-                Container(
-                  color: Colors.black.withOpacity(0.4), // خلفية شفافة
-                  child: const Center(
-                    child: CircularProgressIndicator(color: Colors.blue),
-                  ),
-                );
-              }
               return Stack(
                 children: [
                   Form(
@@ -79,24 +90,23 @@ class _LoginScreenState extends State<LoginScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            69.verticalSpace,
+                            SizedBox(height: 69.h),
                             Text(
                               'Welcome Back',
                               style: Theme.of(context).textTheme.headlineMedium
                                   ?.copyWith(fontWeight: FontWeight.bold),
                             ),
-                            20.verticalSpace,
+                            SizedBox(height: 20.h),
                             Text(
                               'Sign in to continue',
                               style: Theme.of(context).textTheme.bodyLarge
                                   ?.copyWith(color: Colors.grey),
                             ),
-                            20.verticalSpace,
+                            SizedBox(height: 20.h),
                             CustomTextFormField(
                               hintText: 'Email',
                               prefixIcon: const Icon(Icons.email_outlined),
                               controller: emailController,
-                              focusNode: emailFocusNode,
                               keyboardType: TextInputType.emailAddress,
                               validator: (value) {
                                 if (value == null || value.trim().isEmpty) {
@@ -110,12 +120,11 @@ class _LoginScreenState extends State<LoginScreen> {
                                 return null;
                               },
                             ),
-                            20.verticalSpace,
+                            SizedBox(height: 20.h),
                             CustomTextFormField(
                               hintText: 'Password',
                               obscureText: !isPasswordVisible,
                               controller: passwordController,
-                              focusNode: passwordFocusNode,
                               prefixIcon: const Icon(Icons.lock_outline),
                               suffixIcon: IconButton(
                                 icon: Icon(
@@ -139,22 +148,24 @@ class _LoginScreenState extends State<LoginScreen> {
                                 return null;
                               },
                             ),
-                            30.verticalSpace,
-
+                            SizedBox(height: 30.h),
                             CustomButton(
                               text: state is AuthLoading
                                   ? "Signing in..."
                                   : "Sign in",
-                              onPressed: () {
-                                if (formKey.currentState!.validate()) {
-                                  context.read<AuthCubit>().signIn(
-                                    email: emailController.text.trim(),
-                                    password: passwordController.text.trim(),
-                                  );
-                                }
-                              },
+                              onPressed: state is AuthLoading
+                                  ? () {}
+                                  : () {
+                                      if (formKey.currentState!.validate()) {
+                                        context.read<AuthCubit>().signIn(
+                                          email: emailController.text.trim(),
+                                          password: passwordController.text
+                                              .trim(),
+                                        );
+                                      }
+                                    },
                             ),
-                            20.verticalSpace,
+                            SizedBox(height: 20.h),
                             Row(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
@@ -178,7 +189,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                 ),
                               ],
                             ),
-                            10.verticalSpace,
+                            SizedBox(height: 20.h),
                             Row(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
@@ -191,48 +202,49 @@ class _LoginScreenState extends State<LoginScreen> {
                                     width: 50,
                                   ),
                                 ),
-                                16.horizontalSpace,
-
-                                BlocConsumer<
+                                SizedBox(width: 16.w),
+                                BlocBuilder<
                                   AuthProvidersCubit,
                                   AuthProvidersState
                                 >(
-                                  listener: (context, state) {
-                                    if (state is AuthProvidersSuccess) {
-                                      Navigator.pushReplacement(
-                                        context,
-                                        MaterialPageRoute(
-                                          builder: (_) => const HomePage(),
-                                        ),
-                                      );
-                                    } else if (state is AuthProvidersError) {
-                                      AppSnackBar.show(
-                                        context,
-                                        message: state.error,
-                                        isError: true,
-                                      );
-                                    }
-                                  },
                                   builder: (context, state) {
-                                    if (state is AuthProvidersLoading) {
-                                      return const CircularProgressIndicator(
-                                        color: Colors.blue,
-                                      );
-                                    }
-                                    return GestureDetector(
-                                      onTap: () {
-                                        context
-                                            .read<AuthProvidersCubit>()
-                                            .signInWithGoogle();
-                                      },
-                                      child: CircleAvatar(
-                                        backgroundColor: Colors.white,
-                                        radius: 30,
-                                        child: SvgPicture.asset(
-                                          AppSvg.google,
-                                          height: 40,
-                                          width: 40,
+                                    return InkWell(
+                                      onTap: state is AuthProvidersLoading
+                                          ? null
+                                          : () {
+                                              context
+                                                  .read<AuthProvidersCubit>()
+                                                  .signInWithGoogle();
+                                            },
+                                      borderRadius: BorderRadius.circular(8),
+                                      child: Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          vertical: 12,
+                                          horizontal: 24,
                                         ),
+                                        decoration: BoxDecoration(
+                                          color: Colors.blue,
+                                          borderRadius: BorderRadius.circular(
+                                            8,
+                                          ),
+                                        ),
+                                        child: state is AuthProvidersLoading
+                                            ? const SizedBox(
+                                                height: 20,
+                                                width: 20,
+                                                child:
+                                                    CircularProgressIndicator(
+                                                      color: Colors.white,
+                                                      strokeWidth: 2,
+                                                    ),
+                                              )
+                                            : const Text(
+                                                "Sign in with Google",
+                                                style: TextStyle(
+                                                  color: Colors.white,
+                                                  fontSize: 16,
+                                                ),
+                                              ),
                                       ),
                                     );
                                   },
@@ -244,6 +256,13 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                     ),
                   ),
+                  if (state is AuthLoading)
+                    Container(
+                      color: Colors.black.withOpacity(0.4),
+                      child: const Center(
+                        child: CircularProgressIndicator(color: Colors.blue),
+                      ),
+                    ),
                 ],
               );
             },
