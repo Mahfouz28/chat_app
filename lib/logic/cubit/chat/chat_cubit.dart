@@ -1,10 +1,16 @@
-import 'package:chat_app/logic/cubit/chat/chat_status.dart';
+import 'dart:io';
 import 'dart:async';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:chat_app/data/model/chat_messege_model.dart';
+import 'package:chat_app/data/model/chat_messege_model.dart'; // Import for MessageStatus
 import 'package:chat_app/data/repo/chat_repo.dart';
+import 'package:chat_app/logic/cubit/chat/chat_status.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+
+// Remove enum MessageStatus { sent, delivered, read } from here
+// Use the one from chat_messege_model.dart
 
 class ChatCubit extends Cubit<ChatState> {
+  // Removed duplicate MessageType enum
   final ChatRepo chatRepo;
   ChatCubit(this.chatRepo) : super(ChatInitial());
 
@@ -41,6 +47,7 @@ class ChatCubit extends Cubit<ChatState> {
     required String senderId,
     required String receiverId,
     required String content,
+    String type = 'text', // Ensure type is a String as expected by ChatRepo
   }) async {
     try {
       await chatRepo.sendMessage(
@@ -54,7 +61,6 @@ class ChatCubit extends Cubit<ChatState> {
     }
   }
 
-  /// تحديث رسالة واحدة عند مشاهدتها
   Future<void> markMessageAsRead(String messageId, String userId) async {
     try {
       final currentState = state;
@@ -67,7 +73,6 @@ class ChatCubit extends Cubit<ChatState> {
             seenBy: [...msg.seenBy, userId],
           );
 
-          // تحديث قاعدة البيانات لكل رسالة
           chatRepo.markAsRead(msg.id, userId, currentState.chatRoom.id);
 
           return updatedMsg;
@@ -75,7 +80,6 @@ class ChatCubit extends Cubit<ChatState> {
         return msg;
       }).toList();
 
-      // تحديث حالة آخر رسالة في الغرفة
       if (updatedMessages.isNotEmpty) {
         final lastMessage = updatedMessages.last;
         chatRepo.updateChatRoomLastMessageStatus(
@@ -90,7 +94,6 @@ class ChatCubit extends Cubit<ChatState> {
     }
   }
 
-  /// Batch update: كل الرسائل في الغرفة تقرأ
   Future<void> markAllAsRead(String chatRoomId, String userId) async {
     try {
       final currentState = state;
@@ -107,7 +110,6 @@ class ChatCubit extends Cubit<ChatState> {
         return msg;
       }).toList();
 
-      // تحديث last_message_status للغرفة
       chatRepo.updateChatRoomLastMessageStatus(
         chatRoomId,
         MessageStatus.read.name,
@@ -123,5 +125,64 @@ class ChatCubit extends Cubit<ChatState> {
   Future<void> close() {
     _subscription?.cancel();
     return super.close();
+  }
+
+  Future<void> sendVoiceMessage({
+    required String chatRoomId,
+    required String senderId,
+    required String receiverId,
+    required File file,
+  }) async {
+    try {
+      if (Supabase.instance.client.auth.currentUser == null) {
+        throw Exception("User not authenticated");
+      }
+
+      final fileName = 'voice_${DateTime.now().millisecondsSinceEpoch}.m4a';
+      final pathInBucket =
+          'voices/$chatRoomId/$fileName'; // Explicitly include 'voices' folder
+
+      print('Uploading to bucket: chat-voices, full path: $pathInBucket');
+      final url = await chatRepo.uplodeVoiceFile(
+        file: file,
+        pathInBucket: pathInBucket,
+      );
+
+      if (url.isEmpty) {
+        throw Exception("Failed to generate valid URL for voice file");
+      }
+
+      print('Upload successful, URL: $url');
+      await chatRepo.sendMessage(
+        chatRoomId: chatRoomId,
+        senderId: senderId,
+        receiverId: receiverId,
+        content: url, // Removed duplicate MessageType enum
+        type: 'voice', // Convert enum to String
+      );
+
+      final currentState = state;
+      if (currentState is ChatLoaded) {
+        final newMessage = ChatMessageModel(
+          id: '', // Generate or fetch real ID later
+          chatRoomId: chatRoomId,
+          senderId: senderId,
+          receiverId: receiverId,
+          content: url, // Use String representation
+          type: 'voice', // Use String representation
+          status: MessageStatus.sent, // Use enum from chat_messege_model.dart
+          seenBy: [senderId],
+          createdAt: DateTime.now(),
+        );
+        emit(
+          currentState.copyWith(
+            messages: [...currentState.messages, newMessage],
+          ),
+        );
+      }
+    } catch (e) {
+      print('Error in sendVoiceMessage: $e');
+      emit(ChatError("Failed to send voice message: $e"));
+    }
   }
 }

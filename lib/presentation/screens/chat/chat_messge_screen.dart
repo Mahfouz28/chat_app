@@ -1,12 +1,18 @@
+import 'dart:core';
+import 'dart:io';
+import 'dart:math';
 import 'package:animated_text_kit/animated_text_kit.dart';
 import 'package:chat_app/config/theme/app_theme.dart';
 import 'package:chat_app/data/model/chat_messege_model.dart';
-import 'package:chat_app/logic/cubit/chat/chat_status.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:chat_app/logic/cubit/chat/chat_cubit.dart';
+import 'package:chat_app/logic/cubit/chat/chat_status.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:record/record.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:audioplayers/audioplayers.dart';
 
 class ChatMessgeScreen extends StatefulWidget {
   const ChatMessgeScreen({super.key, this.receviedId, this.receviedName});
@@ -20,7 +26,9 @@ class ChatMessgeScreen extends StatefulWidget {
 
 class _ChatMessgeScreenState extends State<ChatMessgeScreen> {
   final TextEditingController _messageController = TextEditingController();
-
+  bool _isRecording = false;
+  final AudioRecorder _recorder =
+      AudioRecorder(); // Replace AudioRecorder with the actual concrete class
   @override
   void initState() {
     super.initState();
@@ -104,7 +112,7 @@ class _ChatMessgeScreenState extends State<ChatMessgeScreen> {
                       final msg = reversedMessages[index];
                       final isMe = msg.senderId == currentUserId;
 
-                      // ====== Update seenBy automatically for incoming messages =====
+                      // تحديث seenBy لو الرسالة ليا
                       if (!isMe && !msg.seenBy.contains(currentUserId)) {
                         context.read<ChatCubit>().markAllAsRead(
                           msg.id,
@@ -133,14 +141,58 @@ class _ChatMessgeScreenState extends State<ChatMessgeScreen> {
               padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
               child: Row(
                 children: [
-                  IconButton(
-                    onPressed: () {},
-                    icon: Icon(
-                      Icons.emoji_emotions_outlined,
-                      size: 24.sp,
-                      color: AppTheme.primaryColor,
-                    ),
-                  ),
+                  // IconButton(
+                  //   onPressed: () async {
+                  //     final chatCubit = context.read<ChatCubit>();
+                  //     final currentUserId =
+                  //         Supabase.instance.client.auth.currentUser!.id;
+
+                  //     if (!_isRecording) {
+                  //       // Start recording
+                  //       if (await _recorder.hasPermission()) {
+                  //         // Generate a unique file path
+                  //         final directory =
+                  //             await getApplicationDocumentsDirectory();
+                  //         final filePath =
+                  //             '${directory.path}/recording_${DateTime.now().millisecondsSinceEpoch}.m4a';
+                  //         await _recorder.start(
+                  //           const RecordConfig(encoder: AudioEncoder.aacLc),
+                  //           path: filePath,
+                  //         );
+                  //         setState(() => _isRecording = true);
+                  //       } else {
+                  //         // Handle permission denied (e.g., show a dialog or request permission)
+                  //         print('Microphone permission denied');
+                  //       }
+                  //     } else {
+                  //       // Stop recording
+                  //       final path = await _recorder.stop();
+                  //       setState(() => _isRecording = false);
+
+                  //       if (path != null) {
+                  //         final file = File(path);
+                  //         final currentState = chatCubit.state;
+                  //         if (currentState is ChatLoaded) {
+                  //           await chatCubit.sendVoiceMessage(
+                  //             chatRoomId: currentState.chatRoom.id,
+                  //             senderId: currentUserId,
+                  //             receiverId: widget.receviedId!,
+                  //             file: file,
+                  //           );
+                  //           print('==============${e.toString()}');
+                  //           print('Voice message sent: $path');
+                  //         } else {
+                  //           print('Chat is not loaded ');
+                  //         }
+                  //       }
+                  //     }
+                  //   },
+                  //   icon: Icon(
+                  //     _isRecording ? Icons.stop_rounded : Icons.mic_rounded,
+                  //     size: 24.sp,
+                  //     color: _isRecording ? Colors.red : AppTheme.primaryColor,
+                  //   ),
+                  // ),
                   Expanded(
                     child: TextField(
                       minLines: 1,
@@ -201,6 +253,8 @@ class MessegeBubbel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isVoice = chatMessage.type == "voice";
+
     return Align(
       alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
       child: Container(
@@ -215,10 +269,13 @@ class MessegeBubbel extends StatelessWidget {
               ? CrossAxisAlignment.end
               : CrossAxisAlignment.start,
           children: [
-            Text(
-              chatMessage.content,
-              style: const TextStyle(color: Colors.white),
-            ),
+            if (isVoice)
+              VoiceMessagePlayer(url: chatMessage.content)
+            else
+              Text(
+                chatMessage.content,
+                style: const TextStyle(color: Colors.white),
+              ),
             if (showTime)
               Row(
                 mainAxisSize: MainAxisSize.min,
@@ -230,13 +287,13 @@ class MessegeBubbel extends StatelessWidget {
                   if (isMe) ...[
                     SizedBox(width: 8.w),
                     Icon(
-                      chatMessage.status == MessageStatus.sent
+                      chatMessage.status.name == "sent"
                           ? Icons.done_outlined
-                          : chatMessage.status == MessageStatus.delivered
+                          : chatMessage.status.name == "delivered"
                           ? Icons.done_all_outlined
                           : Icons.done_all_outlined,
                       size: 16.sp,
-                      color: chatMessage.status == MessageStatus.read
+                      color: chatMessage.status.name == "read"
                           ? Colors.lightBlueAccent
                           : Colors.white70,
                     ),
@@ -246,6 +303,37 @@ class MessegeBubbel extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+class VoiceMessagePlayer extends StatefulWidget {
+  final String url;
+  const VoiceMessagePlayer({super.key, required this.url});
+
+  @override
+  State<VoiceMessagePlayer> createState() => _VoiceMessagePlayerState();
+}
+
+class _VoiceMessagePlayerState extends State<VoiceMessagePlayer> {
+  final player = AudioPlayer();
+  bool isPlaying = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return IconButton(
+      icon: Icon(
+        isPlaying ? Icons.pause : Icons.play_arrow,
+        color: Colors.white,
+      ),
+      onPressed: () async {
+        if (isPlaying) {
+          await player.pause();
+        } else {
+          await player.play(UrlSource(widget.url));
+        }
+        setState(() => isPlaying = !isPlaying);
+      },
     );
   }
 }

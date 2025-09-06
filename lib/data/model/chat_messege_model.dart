@@ -1,4 +1,6 @@
-enum MessageType { text, image, video, audio, file }
+// chat_messege_model.dart
+
+enum MessageType { text, audio }
 
 enum MessageStatus { sent, delivered, read }
 
@@ -8,11 +10,10 @@ class ChatMessageModel {
   final String senderId;
   final String receiverId;
   final String content;
-  final MessageType type;
+  final String type;
   final MessageStatus status;
-  final DateTime createdAt;
-  final bool isDeleted;
   final List<String> seenBy;
+  final DateTime createdAt;
 
   ChatMessageModel({
     required this.id,
@@ -20,70 +21,58 @@ class ChatMessageModel {
     required this.senderId,
     required this.receiverId,
     required this.content,
-    this.type = MessageType.text,
-    this.status = MessageStatus.sent,
+    required this.type,
+    required this.status,
+    required this.seenBy,
     required this.createdAt,
-    this.isDeleted = false,
-    this.seenBy = const [],
   });
 
-  /// DB row → Dart object
+  // Factory constructor to create from Supabase data
   factory ChatMessageModel.fromSupabase(Map<String, dynamic> data) {
     return ChatMessageModel(
-      id: data['id'] ?? '',
-      chatRoomId: data['chat_room_id'] ?? '',
-      senderId: data['sender_id'] ?? '',
-      receiverId: data['receiver_id'] ?? '',
-      content: data['content'] ?? '',
-      type: MessageType.values.firstWhere(
-        (e) =>
-            e.name.toLowerCase() ==
-            (data['type'] ?? 'text').toString().toLowerCase(),
-        orElse: () => MessageType.text,
+      id: data['id'] as String? ?? '',
+      chatRoomId: data['chat_room_id'] as String? ?? '',
+      senderId: data['sender_id'] as String? ?? '',
+      receiverId: data['receiver_id'] as String? ?? '',
+      content: data['content'] as String? ?? '',
+      type: data['type'] as String? ?? 'text',
+      status: _parseStatus(data['status'] as String? ?? 'sent'),
+      seenBy:
+          (data['seen_by'] as List<dynamic>?)
+              ?.map((e) => e.toString())
+              .toList() ??
+          [],
+      createdAt: DateTime.parse(
+        data['created_at'] as String? ?? DateTime.now().toIso8601String(),
       ),
-      status: MessageStatus.values.firstWhere(
-        (e) =>
-            e.name.toLowerCase() ==
-            (data['status'] ?? 'sent').toString().toLowerCase(),
-        orElse: () => MessageStatus.sent,
-      ),
-      createdAt: data['created_at'] != null
-          ? DateTime.tryParse(data['created_at'].toString()) ??
-                DateTime.now().toUtc()
-          : DateTime.now().toUtc(),
-      isDeleted: data['is_deleted'] ?? false,
-      seenBy: data['seen_by'] != null ? List<String>.from(data['seen_by']) : [],
     );
   }
 
-  /// Dart object → DB row
-  Map<String, dynamic> toMap() {
-    return {
-      'id': id,
-      'chat_room_id': chatRoomId,
-      'sender_id': senderId,
-      'receiver_id': receiverId,
-      'content': content,
-      'type': type.name,
-      'status': status.name,
-      'created_at': createdAt.toIso8601String(),
-      'is_deleted': isDeleted,
-      'seen_by': seenBy,
-    };
+  // Helper to parse status string to MessageStatus enum
+  static MessageStatus _parseStatus(String status) {
+    switch (status.toLowerCase()) {
+      case 'sent':
+        return MessageStatus.sent;
+      case 'delivered':
+        return MessageStatus.delivered;
+      case 'read':
+        return MessageStatus.read;
+      default:
+        return MessageStatus.sent; // Default value
+    }
   }
 
-  /// copyWith → create new object with updated fields
+  // Optional: copyWith for state updates
   ChatMessageModel copyWith({
     String? id,
     String? chatRoomId,
     String? senderId,
     String? receiverId,
     String? content,
-    MessageType? type,
+    String? type,
     MessageStatus? status,
-    DateTime? createdAt,
-    bool? isDeleted,
     List<String>? seenBy,
+    DateTime? createdAt,
   }) {
     return ChatMessageModel(
       id: id ?? this.id,
@@ -93,9 +82,8 @@ class ChatMessageModel {
       content: content ?? this.content,
       type: type ?? this.type,
       status: status ?? this.status,
-      createdAt: createdAt ?? this.createdAt,
-      isDeleted: isDeleted ?? this.isDeleted,
       seenBy: seenBy ?? this.seenBy,
+      createdAt: createdAt ?? this.createdAt,
     );
   }
 }

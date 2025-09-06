@@ -81,6 +81,7 @@ class ChatRepo {
     required String senderId,
     required String receiverId,
     required String content,
+    String type = 'text',
   }) async {
     try {
       final message = {
@@ -88,7 +89,7 @@ class ChatRepo {
         'sender_id': senderId,
         'receiver_id': receiverId,
         'content': content,
-        'type': 'text',
+        'type': type,
         'status': 'sent',
         'is_deleted': false,
         'created_at': DateTime.now().toUtc().toIso8601String(),
@@ -273,31 +274,29 @@ class ChatRepo {
     int signedUrlDurationSeconds = 3600,
   }) async {
     try {
-      // Upload the file to Supabase Storage
-      // ignore: unused_local_variable
-      final uploadRes = await supabase.storage
-          .from('chat-voices')
-          .upload(pathInBucket, file);
+      // Ensure the path starts with 'voices/' to match the existing folder
+      final fullPath =
+          'voices/$pathInBucket'; // Adjust if pathInBucket already includes 'voices/'
+      print('Uploading to bucket: chat-voices, path: $fullPath');
+      await supabase.storage.from('chat-voices').upload(fullPath, file);
 
-      // if upload fails the SDK might throw; otherwise we get public or signed url.
-
-      // If bucket is public -> getPublicUrl
-      final publicUrl = supabase.storage
-          .from('chat-voices')
-          .getPublicUrl(pathInBucket);
-      // If bucket is private -> create signed url
+      // Determine the URL based on bucket privacy
       if (signedUrlDurationSeconds > 0) {
-        final signed = await supabase.storage
+        final signedUrl = await supabase.storage
             .from('chat-voices')
-            .createSignedUrl(
-              pathInBucket, // String
-              signedUrlDurationSeconds, // int
-            );
-        return signed;
+            .createSignedUrl(fullPath, signedUrlDurationSeconds);
+        if (signedUrl.isNotEmpty) {
+          return signedUrl;
+        }
       }
 
-      return publicUrl; // fallback
+      // Fallback to public URL for public buckets
+      final publicUrl = supabase.storage
+          .from('chat-voices')
+          .getPublicUrl(fullPath);
+      return publicUrl;
     } catch (e) {
+      print('Upload error: $e');
       throw Exception("Failed to upload voice file: $e");
     }
   }

@@ -24,14 +24,15 @@ dependencies:
   visibility_detector: ^0.4.0+2
   flutter_svg: ^2.2.1
   app_links:
-  record:             # للتسجيل
+  record: ^6.1.1             # للتسجيل
   path_provider:    # لإيجاد temporary dir
   uuid:               # لتوليد أسماء ملفات فريدة
   audioplayers: 
+  permission_handler: ^12.0.1
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  flutter_lints: ^5.0.0
+  flutter_lints: ^6.0.0
 
 flutter:
   uses-material-design: true
